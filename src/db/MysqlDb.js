@@ -1,4 +1,4 @@
-require("dotenv").config();
+//require("dotenv").config();
 const constants = require("../constants");
 const mysql = require("mysql");
 
