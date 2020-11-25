@@ -1,9 +1,12 @@
 const express = require("express");
+const path = require("path");
 const router = express.Router();
 const bodyParser = require("body-parser");
-const moment = require("moment");
-const constants = require("../../constants");
-const { establishConnection, disconnect } = require("../../db/MysqlDb");
+const constants = require(path.resolve("src", "constants"));
+const { establishConnection, disconnect } = require(path.resolve(
+  "src/db",
+  "MysqlDb.js"
+));
 const {
   getAll,
   getPost,
@@ -11,9 +14,12 @@ const {
   updatePost,
   deleteFromJoin,
   deletePost,
-} = require("../../db/transactions");
-const { requireApiAuth } = require("../../middleware/authMiddleware");
-const { getCategoryRecipes } = require("../../db/categories");
+} = require(path.resolve("src/db", "transactions.js"));
+const { requireApiAuth } = require(path.resolve(
+  "src/middleware",
+  "authMiddleware.js"
+));
+const { getCategoryRecipes } = require(path.resolve("src/db", "categories.js"));
 
 const jsonParser = bodyParser.json();
 router.use(requireApiAuth);

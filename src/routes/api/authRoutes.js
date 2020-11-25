@@ -1,26 +1,26 @@
 const express = require("express");
+const path = require("path");
 const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
-const {
-  addUser,
-  validateUser,
-  getAllUsers,
-  updateUser,
-} = require("../../db/auth");
-const { requireUserAuth } = require("../../middleware/authMiddleware");
-const { establishConnection, disconnect } = require("../../db/mysqlDb");
+const { validateUser } = require(path.resolve("src/db", "auth.js"));
+const { requireUserAuth } = require(path.resolve(
+  "src/middleware",
+  "authMiddleware.js"
+));
+const { establishConnection, disconnect } = require(path.resolve(
+  "src/db",
+  "MysqlDb.js"
+));
 const {
   getAll,
   updatePost,
   addPost,
   deletePost,
   getPost,
-  getConfValue,
-} = require("../../db/transactions");
-const constants = require("../../constants");
-const { E_INFOMISSING } = require("../../constants");
+} = require(path.resolve("src/db", "transactions.js"));
+const constants = require(path.resolve("src", "constants"));
 
 const jsonParser = bodyParser.json();
 
@@ -41,12 +41,10 @@ router.post("/register", async (req, res) => {
   // Not accepting user registration,comment out below to accept new users.
 
   if (parseInt(process.env.ALLOW_REGISTRATION) !== 1) {
-    return res
-      .status(403)
-      .json({
-        code: constants.I_NOT_ACCEPTING_NEW_USERS,
-        msg: constants.I_NOT_ACCEPTING_NEW_USERS_MSG,
-      });
+    return res.status(403).json({
+      code: constants.I_NOT_ACCEPTING_NEW_USERS,
+      msg: constants.I_NOT_ACCEPTING_NEW_USERS_MSG,
+    });
   }
 
   const { username, password, name } = req.body;

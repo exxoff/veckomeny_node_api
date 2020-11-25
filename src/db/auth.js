@@ -1,7 +1,9 @@
-const { establishConnection, disconnect } = require("../db/mysqlDb");
+const path = require("path");
+const { establishConnection, disconnect } = require("./MysqlDb");
+
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const constants = require("../constants");
+const constants = require(path.resolve("src", "constants"));
 
 module.exports.validateUser = async (username, password) => {
   return new Promise(async (resolve, reject) => {

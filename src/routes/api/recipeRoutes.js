@@ -1,10 +1,13 @@
 const express = require("express");
+const path = require("path");
 const router = express.Router();
 const bodyParser = require("body-parser");
 const moment = require("moment");
-const constants = require("../../constants");
-const { establishConnection, disconnect } = require("../../db/MysqlDb");
-const { requireApiAuth } = require("../../middleware/authMiddleware");
+const constants = require(path.resolve("src", "constants"));
+const { establishConnection, disconnect } = require(path.resolve(
+  "src/db",
+  "MysqlDb.js"
+));
 const {
   getAll,
   getPost,
@@ -12,13 +15,16 @@ const {
   updatePost,
   deleteFromJoin,
   deletePost,
-} = require("../../db/transactions");
+} = require(path.resolve("src/db", "transactions.js"));
+const { requireApiAuth } = require(path.resolve(
+  "src/middleware",
+  "authMiddleware.js"
+));
 const {
   getRecipeCategories,
   getRecipeMenus,
-  searchRecipes,
   setRecipeCategories,
-} = require("../../db/recipes");
+} = require(path.resolve("src/db", "recipes.js"));
 
 // Middleware
 const jsonParser = bodyParser.json();

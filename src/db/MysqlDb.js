@@ -1,5 +1,6 @@
 //require("dotenv").config();
-const constants = require("../constants");
+const path = require("path");
+const constants = require(path.resolve("src", "constants"));
 const mysql = require("mysql");
 
 // DB SETUP

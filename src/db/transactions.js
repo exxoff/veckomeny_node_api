@@ -1,4 +1,5 @@
-const constants = require("../constants");
+const path = require("path");
+const constants = require(path.resolve("src", "constants"));
 
 module.exports.getAll = async (connection, table, pagination, searchObj) => {
   return new Promise((resolve, reject) => {

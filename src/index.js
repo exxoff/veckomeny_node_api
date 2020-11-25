@@ -1,6 +1,5 @@
 require("dotenv").config();
 const express = require("express");
-const { requireApiAuth } = require("./middleware/authMiddleware");
 
 const app = express();
 const PORT = process.env.PORT || 3000;

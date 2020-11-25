@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
-const { validateApiKey } = require("../db/auth");
+const path = require("path");
+const { validateApiKey } = require(path.resolve("src/db", "auth.js"));
 
 module.exports.requireApiAuth = async (req, res, next) => {
   const { authorization } = req.headers;

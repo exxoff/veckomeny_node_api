@@ -1,19 +1,25 @@
 const express = require("express");
+const path = require("path");
 const router = express.Router();
 const bodyParser = require("body-parser");
 const moment = require("moment");
-const constants = require("../../constants");
-const { establishConnection, disconnect } = require("../../db/MysqlDb");
+const constants = require(path.resolve("src", "constants"));
+const { establishConnection, disconnect } = require(path.resolve(
+  "src/db",
+  "MysqlDb.js"
+));
 const {
   getAll,
   getPost,
   addPost,
   updatePost,
-  deleteFromJoin,
   deletePost,
-} = require("../../db/transactions");
-const { requireApiAuth } = require("../../middleware/authMiddleware");
-const { isDate } = require("moment");
+} = require(path.resolve("src/db", "transactions.js"));
+
+const { requireApiAuth } = require(path.resolve(
+  "src/middleware",
+  "authMiddleware.js"
+));
 
 const jsonParser = bodyParser.json();
 router.use(requireApiAuth);
@@ -24,7 +30,6 @@ const TABLE = constants.MENU_TABLE;
 
 //GET ALL POSTS
 router.get("/", async (req, res) => {
-  //TODO: This needs pagination
   let conn = undefined;
   const pagination = ({ limit, offset } = req.query);
   let { before, after } = req.query;
@@ -165,7 +170,6 @@ router.put("/:id", jsonParser, async (req, res) => {
   }
   let conn = undefined;
   try {
-    const now = moment().clone().format();
     conn = await establishConnection();
     const recResult = await getPost(conn, constants.RECIPE_TABLE, {
       id: parsedId,
