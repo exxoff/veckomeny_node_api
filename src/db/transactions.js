@@ -74,7 +74,7 @@ module.exports.getPost = async (connection, table, post) => {
         });
       } else if (result.length < 1) {
         resolve({
-          retcode: 200,
+          retcode: 404,
           retmsg: {
             code: constants.E_NOTFOUND,
             msg: constants.E_NOTFOUND_MSG,

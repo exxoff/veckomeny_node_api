@@ -99,13 +99,13 @@ router.post("/", jsonParser, async (req, res) => {
     // const post = await getPost(conn, TABLE, { id: result.data });
 
     const post = result.retmsg;
-    console.log("New recipe:", post);
+    // console.log("New recipe:", post);
     let insertObj = [];
 
     categories.map((cat) => {
       insertObj.push([post.data.id, cat.id]);
     });
-    console.log("Cats:", insertObj);
+    // console.log("Cats:", insertObj);
     await setRecipeCategories(conn, undefined, insertObj);
     return res.status(result.retcode).json(result.retmsg);
   } catch (error) {
@@ -135,13 +135,11 @@ router.put("/:id", jsonParser, async (req, res) => {
   }
   let conn = undefined;
   try {
-    const now = moment().clone().format();
     conn = await establishConnection();
     const updateRequest = await updatePost(conn, TABLE, id, {
       name,
       link,
       comment,
-      updated_at: now,
     });
     if (categories) {
       let insertObj = [];
@@ -169,6 +167,7 @@ router.put("/:id", jsonParser, async (req, res) => {
 //DELETE
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
+  const { save } = req.query;
   if (isNaN(id)) {
     return res
       .status(400)
@@ -178,11 +177,18 @@ router.delete("/:id", async (req, res) => {
   try {
     conn = await establishConnection();
     await conn.beginTransaction();
-    await deleteFromJoin(conn, { recipe_id: id });
-    const result = await deletePost(conn, TABLE, { id });
+    // await deleteFromJoin(conn, { recipe_id: id });
+    let result = undefined;
+    // if (save.toLocaleLowerCase() === "yes") {
+    result = await updatePost(conn, TABLE, id, { deleted: true });
+    // } else {
+    //   result = await deletePost(conn, TABLE, { id });
+    // }
+
     await conn.commit();
     return res.status(result.retcode).json(result.retmsg);
   } catch (error) {
+    console.error(error);
     if (conn) {
       conn.rollback();
     }

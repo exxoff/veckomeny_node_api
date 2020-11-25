@@ -135,10 +135,11 @@ router.get("/users/:id", requireUserAuth, async (req, res) => {
 
 router.put("/users/:id", requireUserAuth, async (req, res) => {
   const { id } = req.params;
-  //TODO: Create a new object instead of using req.body
+
+  const newUser = ({ name, username, password } = req.body);
   try {
     const conn = await establishConnection();
-    const result = await updatePost(conn, constants.USERS_TABLE, id, req.body);
+    const result = await updatePost(conn, constants.USERS_TABLE, id, newUser);
     // const result = await updateUser(req.body, id);
     return res.status(result.retcode).json(result.retmsg);
   } catch (error) {
@@ -220,13 +221,17 @@ router.post("/keys", requireUserAuth, async (req, res) => {
 
 router.get("/keys", requireUserAuth, async (req, res) => {
   let conn = undefined;
-
+  const pagination = ({ limit, offset } = req.query);
+  const { name } = req.query;
   try {
     conn = await establishConnection();
-    const result = await getAll(conn, constants.KEYS_TABLE);
+    const result = await getAll(conn, constants.KEYS_TABLE, pagination, {
+      name,
+    });
 
     return res.status(result.retcode).json(result.retmsg);
   } catch (error) {
+    console.error(error);
     return res.status(error.retcode).json(error.retmsg);
   } finally {
     disconnect(conn);
