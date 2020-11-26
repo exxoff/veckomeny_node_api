@@ -9,6 +9,9 @@ module.exports.getAll = async (connection, table, pagination, searchObj) => {
       if (searchObj.name) {
         sql = `${sql} AND name like '%${searchObj.name}%'`;
       }
+      if (searchObj.comment) {
+        sql = `${sql} AND comment like '%${searchObj.comment}%'`;
+      }
       if (searchObj.categories) {
         // console.log("Categories:", searchObj.categories);
         sql = `${sql} AND id in (SELECT recipe_id from ${constants.JOIN_TABLE} WHERE category_id IN (${searchObj.categories}) GROUP BY recipe_id HAVING COUNT(*) =${searchObj.categories.length})`;
@@ -100,12 +103,30 @@ module.exports.addPost = async (connection, table, post) => {
     const sql = `INSERT INTO ${table} set ?`;
     connection.query(sql, [post], async (error, result) => {
       if (error) {
+        console.log(error.code);
+        let errCode = 500;
+        let errMsg = "";
+        let code = "";
+        let msg = "";
+        switch (error.code) {
+          case "ER_DUP_ENTRY":
+            errCode = 400;
+            errMsg = "Entity already exist";
+            code = constants.E_INVALIDDATA;
+            msg = constants.E_INVALIDDATA_MSG;
+            break;
+          default:
+            errMsg = error.message;
+            code = constants.E_DBERROR;
+            msg = constants.E_DBERROR_MSG;
+            break;
+        }
         reject({
-          retcode: 500,
+          retcode: errCode,
           retmsg: {
-            code: constants.E_DBERROR,
-            msg: constants.E_DBERROR_MSG,
-            error: error.message,
+            code: code,
+            msg: msg,
+            error: errMsg,
           },
         });
       } else {
@@ -199,13 +220,136 @@ module.exports.deletePost = async (connection, table, post) => {
           },
         });
       } else {
+        if (result.affectedRows === 0) {
+          reject({
+            retcode: 404,
+            retmsg: {
+              code: constants.E_NOTFOUND,
+              msg: constants.E_NOTFOUND_MSG,
+              error: "Not found",
+            },
+          });
+        } else {
+          resolve({
+            retcode: 200,
+            retmsg: {
+              code: constants.I_SUCCESS,
+              msg: constants.I_SUCCESS_MSG,
+              data: result.affectedRows,
+            },
+          });
+        }
+      }
+    });
+  });
+};
+
+module.exports.getCategoryRecipes = async (connection, id) => {
+  return new Promise((resolve, reject) => {
+    sql = `select r.id,r.created_at,r.updated_at,r.name,r.link,r.comment,r.deleted FROM ${constants.JOIN_TABLE}\
+    JOIN ${constants.RECIPE_TABLE} as r ON ${constants.JOIN_TABLE}.recipe_id=r.id\
+    JOIN ${constants.CATEGORY_TABLE} as c ON ${constants.JOIN_TABLE}.category_id=c.id\
+    WHERE category_id=?`;
+    connection.query(sql, [id], (error, result) => {
+      if (error) {
+        reject({
+          retcode: 500,
+          retmsg: {
+            code: constants.E_DBERROR,
+            msg: constants.E_DBERROR_MSG,
+            error: error,
+          },
+        });
+      } else {
         resolve({
           retcode: 200,
           retmsg: {
             code: constants.I_SUCCESS,
             msg: constants.I_SUCCESS_MSG,
-            data: result.affectedRows,
+            data: result,
           },
+        });
+      }
+    });
+  });
+};
+
+module.exports.getRecipeCategories = async (connection, id) => {
+  return new Promise((resolve, reject) => {
+    sql = `select c.id,c.created_at,c.updated_at,c.name FROM ${constants.JOIN_TABLE}\
+    JOIN ${constants.RECIPE_TABLE} as r ON ${constants.JOIN_TABLE}.recipe_id=r.id\
+    JOIN ${constants.CATEGORY_TABLE} as c ON ${constants.JOIN_TABLE}.category_id=c.id\
+    WHERE recipe_id=?`;
+    // console.log(sql);
+    connection.query(sql, [id], (error, result) => {
+      if (error) {
+        reject({
+          retcode: 500,
+          retmsg: {
+            code: constants.E_DBERROR,
+            msg: constants.E_DBERROR_MSG,
+            error: error,
+          },
+        });
+      } else {
+        resolve({
+          retcode: 200,
+          retmsg: {
+            code: constants.I_SUCCESS,
+            msg: constants.I_SUCCESS_MSG,
+            data: result,
+          },
+        });
+      }
+    });
+  });
+};
+
+module.exports.getRecipeMenus = async (connection, id) => {
+  return new Promise((resolve, reject) => {
+    sql = `SELECT * FROM ${constants.MENU_TABLE} WHERE recipe_id=?`;
+    connection.query(sql, [id], (error, result) => {
+      if (error) {
+        reject({
+          retcode: 500,
+          retmsg: {
+            code: constants.E_DBERROR,
+            msg: constants.E_DBERROR_MSG,
+            error: error,
+          },
+        });
+      } else {
+        resolve({
+          retcode: 200,
+          retmsg: {
+            code: constants.I_SUCCESS,
+            msg: constants.I_SUCCESS_MSG,
+            data: result,
+          },
+        });
+      }
+    });
+  });
+};
+
+module.exports.setRecipeCategories = async (connection, id, insertObj) => {
+  return new Promise(async (resolve, reject) => {
+    if (id) {
+      await deleteFromJoin(connection, { recipe_id: id });
+    }
+    let sql = `INSERT INTO ${constants.JOIN_TABLE} (recipe_id,category_id) values ?`;
+    connection.query(sql, [insertObj], (error, result) => {
+      if (error) {
+        reject({
+          code: constants.E_DBERROR,
+          msg: constants.E_DBERROR_MSG,
+          error: error,
+        });
+      } else {
+        resolve({
+          code: constants.I_SUCCESS,
+          msg: constants.I_SUCCESS_MSG,
+          data: result,
         });
       }
     });

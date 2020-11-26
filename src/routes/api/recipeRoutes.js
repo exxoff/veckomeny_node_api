@@ -2,7 +2,6 @@ const express = require("express");
 const path = require("path");
 const router = express.Router();
 const bodyParser = require("body-parser");
-const moment = require("moment");
 const constants = require(path.resolve("src", "constants"));
 const { establishConnection, disconnect } = require(path.resolve(
   "src/db",
@@ -13,18 +12,14 @@ const {
   getPost,
   addPost,
   updatePost,
-  deleteFromJoin,
-  deletePost,
+  getRecipeCategories,
+  getRecipeMenus,
+  setRecipeCategories,
 } = require(path.resolve("src/db", "transactions.js"));
 const { requireApiAuth } = require(path.resolve(
   "src/middleware",
   "authMiddleware.js"
 ));
-const {
-  getRecipeCategories,
-  getRecipeMenus,
-  setRecipeCategories,
-} = require(path.resolve("src/db", "recipes.js"));
 
 // Middleware
 const jsonParser = bodyParser.json();
@@ -33,11 +28,30 @@ const TABLE = constants.RECIPE_TABLE;
 
 // Work methods
 
-//GET ALL POSTS
+/**
+ * @api {get} /recipes Get recipes
+ * @apiName GetAllRecipes
+ * @apiGroup Recipes
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Query String) {String} [name] Filter on name
+ * @apiParam (Query String) {String[]} [cat] Filter on categories
+ * @apiParam (Query String) {String} [comment] Filter on comment
+ *
+ * @apiUse Pagination
+ * @apiUse MultiEntityHeader
+ * @apiUSe RecipeEntity
+ *
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.get("/", async (req, res) => {
   let conn = undefined;
   const pagination = ({ limit, offset } = req.query);
-  let { name, cat } = req.query;
+  let { name, cat, comment } = req.query;
 
   if (cat && !Array.isArray(cat)) {
     cat = [cat];
@@ -47,8 +61,13 @@ router.get("/", async (req, res) => {
     const result = await getAll(conn, TABLE, pagination, {
       name,
       categories: cat,
+      comment,
     });
-
+    if (result.retmsg.data) {
+      result.retmsg.data.forEach((element) => {
+        element.deleted = !!+element.deleted;
+      });
+    }
     return res.status(result.retcode).json(result.retmsg);
   } catch (error) {
     console.log(error);
@@ -58,7 +77,22 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET SINGLE POST
+/**
+ * @api {get} /recipes/:id Get recipe
+ * @apiName GetRecipe
+ * @apiGroup Recipes
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id ID
+ *
+ * @apiUse SingleEntityHeader
+ * @apiUSe RecipeEntity
+ *
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
   if (isNaN(id)) {
@@ -73,6 +107,7 @@ router.get("/:id", async (req, res) => {
     conn = await establishConnection();
 
     const result = await getPost(conn, TABLE, { id });
+    result.retmsg.data.deleted = !!+result.retmsg.data.deleted;
     return res.status(result.retcode).json(result.retmsg);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
@@ -81,7 +116,23 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// ADD
+/**
+ * @api {post} /recipes Add a recipe
+ * @apiName AddRecipe
+ * @apiGroup Recipes
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Request Message Body) {String} name Name of the recipe
+ * @apiParam (Request Message Body) {String} [link] URL to the recipe
+ * @apiParam (Request Message Body) {String} [comment] Recipe comment
+ *
+ * @apiUse SingleEntityHeader
+ * @apiUSe RecipeEntity
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
 router.post("/", jsonParser, async (req, res) => {
   const { name, link, comment, categories } = req.body;
   if (!name) {
@@ -117,7 +168,26 @@ router.post("/", jsonParser, async (req, res) => {
   }
 });
 
-// UPDATE
+/**
+ * @api {put} /recipes/:id Update a recipe
+ * @apiName UpdateRecipe
+ * @apiGroup Recipes
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id ID
+ *
+ * @apiParam (Request Message Body) {String} [name] Name of the recipe
+ * @apiParam (Request Message Body) {String} [link] URL to the recipe
+ * @apiParam (Request Message Body) {String} [comment] Recipe comment
+ *
+ * @apiUse SingleEntityHeader
+ * @apiUSe RecipeEntity
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.put("/:id", jsonParser, async (req, res) => {
   const { name, link, comment, categories } = req.body;
   const id = parseInt(req.params.id);
@@ -164,7 +234,22 @@ router.put("/:id", jsonParser, async (req, res) => {
   }
 });
 
-//DELETE
+/**
+ * @api {post} /recipes Add a recipe
+ * @apiName AddRecipe
+ * @apiGroup Recipes
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id ID
+ *
+ * @apiSuccess {String} code Success code
+ * @apiSuccess {String} msg Success message
+ * @apiSuccess {String} data Number of affected rows
+ *
+ * @apiUse Error
+ */
+
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   const { save } = req.query;
@@ -200,7 +285,24 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// GET CATEGORIES FOR RECIPE
+/**
+ * @api {get} /recipes/:id/categories Get categories for a recipe
+ * @apiName GetRecipeCategories
+ * @apiGroup Recipes
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id ID
+ *
+ * @apiUse Pagination
+ * @apiUse MultiEntityHeader
+ * @apiUSe CategoryEntity
+ *
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.get("/:id/categories", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
@@ -224,7 +326,24 @@ router.get("/:id/categories", async (req, res) => {
   }
 });
 
-// GET MENUS FOR RECIPE
+/**
+ * @api {get} /recipes/:id/menus Get menus for a recipe
+ * @apiName GetRecipeMenus
+ * @apiGroup Recipes
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id ID
+ *
+ * @apiUse Pagination
+ * @apiUse MultiEntityHeader
+ * @apiUSe MenuEntity
+ *
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.get("/:id/menus", async (req, res) => {
   const { id } = req.params;
   if (isNaN(id)) {
@@ -247,26 +366,27 @@ router.get("/:id/menus", async (req, res) => {
   }
 });
 
-// SEARCH RECIPES
-router.get("/search", async (req, res) => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) {
-    return res
-      .status(400)
-      .json({ code: constants.E_ID_NAN, msg: constants.E_ID_NAN_MSG });
-  }
-  let conn = undefined;
+// // SEARCH RECIPES
+// router.get("/search", async (req, res) => {
+//   const id = parseInt(req.params.id);
+//   if (isNaN(id)) {
+//     return res
+//       .status(400)
+//       .json({ code: constants.E_ID_NAN, msg: constants.E_ID_NAN_MSG });
+//   }
+//   let conn = undefined;
 
-  try {
-    conn = await establishConnection();
-    const result = await getRecipeMenus(conn, id);
-    return res.status(result.retcode).json(result.retmsg);
-  } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
-  } finally {
-    if (conn) {
-      disconnect(conn);
-    }
-  }
-});
+//   try {
+//     conn = await establishConnection();
+//     const result = await getRecipeMenus(conn, id);
+//     return res.status(result.retcode).json(result.retmsg);
+//   } catch (error) {
+//     return res.status(error.retcode).json(error.retmsg);
+//   } finally {
+//     if (conn) {
+//       disconnect(conn);
+//     }
+//   }
+// });
+
 module.exports = router;

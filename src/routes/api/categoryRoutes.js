@@ -14,12 +14,12 @@ const {
   updatePost,
   deleteFromJoin,
   deletePost,
+  getCategoryRecipes,
 } = require(path.resolve("src/db", "transactions.js"));
 const { requireApiAuth } = require(path.resolve(
   "src/middleware",
   "authMiddleware.js"
 ));
-const { getCategoryRecipes } = require(path.resolve("src/db", "categories.js"));
 
 const jsonParser = bodyParser.json();
 router.use(requireApiAuth);
@@ -27,7 +27,23 @@ router.use(requireApiAuth);
 const TABLE = constants.CATEGORY_TABLE;
 // Work methods
 
-//GET ALL POSTS
+/**
+ * @api {get} /categories Get categories
+ * @apiName GetCategories
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Query String) {String} [name] Filter on name
+ *
+ * @apiUse Pagination
+ * @apiUse MultiEntityHeader
+ * @apiUSe CategoryEntity
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.get("/", async (req, res) => {
   let conn = undefined;
   const pagination = ({ limit, offset } = req.query);
@@ -48,7 +64,22 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET SINGLE POST
+/**
+ * @api {get} /categories/:id Get category
+ * @apiName GetCategory
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id ID
+ *
+ * @apiUse SingleEntityHeader
+ * @apiUSe CategoryEntity
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
   if (isNaN(id)) {
@@ -72,7 +103,23 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// ADD
+/**
+ * @api {post} /categories Add category
+ * @apiName AddCategory
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ *
+ * @apiParam (Request Message Body) {String} name Name of the Category
+ *
+ * @apiUse SingleEntityHeader
+ * @apiUSe CategoryEntity
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.post("/", jsonParser, async (req, res) => {
   let conn = undefined;
   let { name } = req.body;
@@ -96,7 +143,23 @@ router.post("/", jsonParser, async (req, res) => {
   }
 });
 
-// UPDATE
+/**
+ * @api {put} /categories Update category
+ * @apiName UpdateCategory
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id ID
+ *
+ * @apiParam (Request Message Body) {String} name Name of the Category
+ *
+ * @apiUse SingleEntityHeader
+ * @apiUSe CategoryEntity
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
 router.put("/:id", jsonParser, async (req, res) => {
   let conn = undefined;
   const { name } = req.body;
@@ -126,7 +189,21 @@ router.put("/:id", jsonParser, async (req, res) => {
   }
 });
 
-//DELETE
+/**
+ * @api {delete} /categories Delete category
+ * @apiName DeleteCategory
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id ID
+ *
+ * @apiSuccess {String} code Success code
+ * @apiSuccess {String} msg Success message
+ * @apiSuccess {String} data Number of affected rows
+ *
+ * @apiUse Error
+ */
 router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
@@ -157,7 +234,24 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// GET RECIPES WITH CATEGORY
+/**
+ * @api {get} /categories/:id/recipes Get recipes for category
+ * @apiName GetCategoryRecipes
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id ID
+ *
+ * @apiUse Pagination
+ * @apiUse MultiEntityHeader
+ * @apiUSe RecipeEntity
+ * @apiUse RecipeCollectionExample
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.get("/:id/recipes", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
@@ -171,9 +265,15 @@ router.get("/:id/recipes", async (req, res) => {
   try {
     conn = await establishConnection();
     const result = await getCategoryRecipes(conn, id);
-    return res.status(200).json(result);
+    if (result.retmsg.data) {
+      result.retmsg.data.forEach((element) => {
+        element.deleted = !!+element.deleted;
+      });
+    }
+    return res.status(result.retcode).json(result.retmsg);
   } catch (error) {
-    return res.status(500).json(error);
+    console.log(error);
+    return res.status(error.retcode).json(error.retmsg);
   } finally {
     if (conn) {
       disconnect(conn);

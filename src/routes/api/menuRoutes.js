@@ -28,14 +28,33 @@ const TABLE = constants.MENU_TABLE;
 
 // Work methods
 
-//GET ALL POSTS
+/**
+ * @api {get} /menus Get all menus
+ * @apiName GetMenus
+ * @apiGroup Menus
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Query String) {Date} [before] Filter on date (yyyy-MM-dd)
+ * @apiParam (Query String) {Date} [after] Filter on date (yyyy-MM-dd)
+ * @apiParam (Query String) {String} [comment] Filter on comment
+ *
+ * @apiUse Pagination
+ * @apiUse MultiEntityHeader
+ * @apiUse MenuEntity
+ *
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.get("/", async (req, res) => {
   let conn = undefined;
   const pagination = ({ limit, offset } = req.query);
-  let { before, after } = req.query;
+  let searchObj = ({ before, after, comment } = req.query);
   try {
     conn = await establishConnection();
-    const result = await getAll(conn, TABLE, pagination, { before, after });
+    const result = await getAll(conn, TABLE, pagination, searchObj);
 
     return res.status(result.retcode).json(result.retmsg);
   } catch (error) {
@@ -47,7 +66,23 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET SINGLE POST
+/**
+ * @api {get} /menus/:id Get single menu
+ * @apiName GetMenu
+ * @apiGroup Menus
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {number} id Menu ID
+ *
+ * @apiUse SingleEntityHeader
+ * @apiUse MenuEntity
+ *
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.get("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
@@ -70,7 +105,25 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// ADD
+/**
+ * @api {post} /menus Add menu
+ * @apiName AddMenu
+ * @apiGroup Menus
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Request Message Body) {Date} date The menu date
+ * @apiParam (Request Message Body) {number} recipe_id The ID of the dish
+ * @apiParam (Request Message Body) {String} [comment] Menu comment
+ *
+ * @apiUse SingleEntityHeader
+ * @apiUse MenuEntity
+ *
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
 router.post("/", jsonParser, async (req, res) => {
   const { date, comment, recipe_id } = req.body;
 
@@ -133,7 +186,26 @@ router.post("/", jsonParser, async (req, res) => {
   }
 });
 
-// UPDATE
+/**
+ * @api {put} /menus/:id Update menu
+ * @apiName UpdateMenu
+ * @apiGroup Menus
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {number} id Menu ID
+ *
+ * @apiParam (Request Message Body) {Date} [date] The menu date
+ * @apiParam (Request Message Body) {number} [recipe_id] The ID of the dish
+ * @apiParam (Request Message Body) {String} [comment] Menu comment
+ *
+ * @apiUse SingleEntityHeader
+ * @apiUse MenuEntity
+ *
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
 router.put("/:id", jsonParser, async (req, res) => {
   const { date, comment, recipe_id } = req.body;
   const { id } = req.params;
@@ -199,7 +271,24 @@ router.put("/:id", jsonParser, async (req, res) => {
   }
 });
 
-//DELETE
+/**
+ * @api {delete} /menus/:id Delete menu
+ * @apiName DeleteMenu
+ * @apiGroup Menus
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {number} id Menu ID
+ *
+ *
+ * @apiSuccess {String} code Success code
+ * @apiSuccess {String} msg Success message
+ * @apiSuccess {String} data Number of affected rows
+ *
+ *
+ * @apiUse Error
+ */
+
 router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {

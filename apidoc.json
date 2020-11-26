@@ -1,0 +1,10 @@
+{
+  "name": "Weekly Menu API Documentation",
+  "version": "1.0.0",
+  "title": "API docs for Weekly Menu API",
+  "url": "https://localhost:3000/api/v1",
+  "header": {
+    "title": "Introduction",
+    "filename": "apidoc/header.md"
+  }
+}
