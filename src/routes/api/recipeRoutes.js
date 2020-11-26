@@ -31,7 +31,7 @@ const TABLE = constants.RECIPE_TABLE;
 /**
  * @api {get} /recipes Get recipes
  * @apiName GetAllRecipes
- * @apiGroup Recipes
+ * @apiGroup recipes
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -80,7 +80,7 @@ router.get("/", async (req, res) => {
 /**
  * @api {get} /recipes/:id Get recipe
  * @apiName GetRecipe
- * @apiGroup Recipes
+ * @apiGroup recipes
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -119,7 +119,7 @@ router.get("/:id", async (req, res) => {
 /**
  * @api {post} /recipes Add a recipe
  * @apiName AddRecipe
- * @apiGroup Recipes
+ * @apiGroup recipes
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -171,7 +171,7 @@ router.post("/", jsonParser, async (req, res) => {
 /**
  * @api {put} /recipes/:id Update a recipe
  * @apiName UpdateRecipe
- * @apiGroup Recipes
+ * @apiGroup recipes
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -237,7 +237,7 @@ router.put("/:id", jsonParser, async (req, res) => {
 /**
  * @api {post} /recipes Add a recipe
  * @apiName AddRecipe
- * @apiGroup Recipes
+ * @apiGroup recipes
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -288,7 +288,7 @@ router.delete("/:id", async (req, res) => {
 /**
  * @api {get} /recipes/:id/categories Get categories for a recipe
  * @apiName GetRecipeCategories
- * @apiGroup Recipes
+ * @apiGroup recipes
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -329,7 +329,7 @@ router.get("/:id/categories", async (req, res) => {
 /**
  * @api {get} /recipes/:id/menus Get menus for a recipe
  * @apiName GetRecipeMenus
- * @apiGroup Recipes
+ * @apiGroup recipes
  * @apiVersion 1.0.0
  * @apiPermission API
  *

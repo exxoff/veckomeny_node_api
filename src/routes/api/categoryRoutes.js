@@ -30,7 +30,7 @@ const TABLE = constants.CATEGORY_TABLE;
 /**
  * @api {get} /categories Get categories
  * @apiName GetCategories
- * @apiGroup Categories
+ * @apiGroup categories
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -67,7 +67,7 @@ router.get("/", async (req, res) => {
 /**
  * @api {get} /categories/:id Get category
  * @apiName GetCategory
- * @apiGroup Categories
+ * @apiGroup categories
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -106,7 +106,7 @@ router.get("/:id", async (req, res) => {
 /**
  * @api {post} /categories Add category
  * @apiName AddCategory
- * @apiGroup Categories
+ * @apiGroup categories
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -146,7 +146,7 @@ router.post("/", jsonParser, async (req, res) => {
 /**
  * @api {put} /categories Update category
  * @apiName UpdateCategory
- * @apiGroup Categories
+ * @apiGroup categories
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -192,7 +192,7 @@ router.put("/:id", jsonParser, async (req, res) => {
 /**
  * @api {delete} /categories Delete category
  * @apiName DeleteCategory
- * @apiGroup Categories
+ * @apiGroup categories
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -237,7 +237,7 @@ router.delete("/:id", async (req, res) => {
 /**
  * @api {get} /categories/:id/recipes Get recipes for category
  * @apiName GetCategoryRecipes
- * @apiGroup Categories
+ * @apiGroup categories
  * @apiVersion 1.0.0
  * @apiPermission API
  *

@@ -40,7 +40,7 @@ function randomString(length, chars) {
 /**
  * @api {post} /auth/register Register new user
  * @apiName RegisterUser
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission none
  *
@@ -96,7 +96,7 @@ router.post("/register", async (req, res) => {
 /**
  * @api {post} /auth/login User login
  * @apiName LoginUser
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission none
  *
@@ -134,7 +134,7 @@ router.post("/login", async (req, res) => {
 /**
  * @api {get} /auth/users Get a list of users
  * @apiName GetUsers
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission Admin
  *
@@ -183,7 +183,7 @@ router.get("/users", requireUserAuth, async (req, res) => {
 /**
  * @api {get} /auth/users/:id Get a single user
  * @apiName GetUser
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission Admin
  *
@@ -217,7 +217,7 @@ router.get("/users/:id", requireUserAuth, async (req, res) => {
 /**
  * @api {put} /auth/users/:id Update a user
  * @apiName UpdateUser
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission Admin
  *
@@ -262,7 +262,7 @@ router.put("/users/:id", requireUserAuth, async (req, res) => {
 /**
  * @api {post} /auth/users Add a user
  * @apiName AddUser
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission Admin
  *
@@ -317,7 +317,7 @@ router.post("/users", requireUserAuth, jsonParser, async (req, res) => {
 /**
  * @api {delete} /auth/users/:id Delete a user
  * @apiName DeleteUser
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission Admin
  *
@@ -351,7 +351,7 @@ router.delete("/users/:id", requireUserAuth, jsonParser, async (req, res) => {
 /**
  * @api {post} /auth/keys Add an API key
  * @apiName AddKey
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission Admin
  *
@@ -396,7 +396,7 @@ router.post("/keys", requireUserAuth, async (req, res) => {
 /**
  * @api {get} /auth/keys Get all API keys
  * @apiName GetKeys
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission Admin
  *
@@ -439,7 +439,7 @@ router.get("/keys", requireUserAuth, async (req, res) => {
 /**
  * @api {get} /auth/keys Get an API key
  * @apiName GetKey
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission Admin
  *
@@ -480,7 +480,7 @@ router.get("/keys/:id", requireUserAuth, async (req, res) => {
 /**
  * @api {put} /auth/keys Update an API key
  * @apiName UpdateKey
- * @apiGroup Auth
+ * @apiGroup auth
  * @apiVersion 1.0.0
  * @apiPermission Admin
  *

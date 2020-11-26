@@ -31,7 +31,7 @@ const TABLE = constants.MENU_TABLE;
 /**
  * @api {get} /menus Get all menus
  * @apiName GetMenus
- * @apiGroup Menus
+ * @apiGroup menus
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -69,7 +69,7 @@ router.get("/", async (req, res) => {
 /**
  * @api {get} /menus/:id Get single menu
  * @apiName GetMenu
- * @apiGroup Menus
+ * @apiGroup menus
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -108,7 +108,7 @@ router.get("/:id", async (req, res) => {
 /**
  * @api {post} /menus Add menu
  * @apiName AddMenu
- * @apiGroup Menus
+ * @apiGroup menus
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -189,7 +189,7 @@ router.post("/", jsonParser, async (req, res) => {
 /**
  * @api {put} /menus/:id Update menu
  * @apiName UpdateMenu
- * @apiGroup Menus
+ * @apiGroup menus
  * @apiVersion 1.0.0
  * @apiPermission API
  *
@@ -274,7 +274,7 @@ router.put("/:id", jsonParser, async (req, res) => {
 /**
  * @api {delete} /menus/:id Delete menu
  * @apiName DeleteMenu
- * @apiGroup Menus
+ * @apiGroup menus
  * @apiVersion 1.0.0
  * @apiPermission API
  *
