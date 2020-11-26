@@ -28,9 +28,8 @@ module.exports.requireUserAuth = async (req, res, next) => {
     const token = authorization.split(" ")[1];
     jwt.verify(token, process.env.JWT_SECRET, async (error, user) => {
       if (error) {
-        // console.log(error);
-
-        return res.status(error.retcode).json(error.retmsg);
+        console.error(error);
+        return res.status(401).json({ msg: error.message });
       }
       req.user = user;
       next();
