@@ -86,7 +86,7 @@ router.post("/register", async (req, res) => {
 
     return res.status(result.retcode).json(result.retmsg);
   } catch (error) {
-    // console.log("Error:", error);
+    console.error("Error:", error);
     return res.status(error.retcode).json(error.retmsg);
   } finally {
     disconnect(conn);
@@ -125,6 +125,7 @@ router.post("/login", async (req, res) => {
     // console.log("Token:", token);
     return res.json({ token: token });
   } catch (error) {
+    console.error("Error:", error);
     return res.status(error.retcode).json(error.retmsg);
   }
 });
