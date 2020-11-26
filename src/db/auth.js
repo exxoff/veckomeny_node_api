@@ -83,13 +83,28 @@ module.exports.validateApiKey = async (apikey) => {
 
             resolve(validated);
           } else {
-            reject("Not authenticated");
+            reject({
+              retcode: 403,
+              retmsg: {
+                code: constants.E_USER_AUTH_FAILED,
+                msg: constants.E_USER_AUTH_FAILED_MSG,
+                error: "Forbidden",
+              },
+            });
           }
         }
       });
     } catch (error) {
-      console.log("Rejected!");
-      reject(error);
+      console.error("Error:", error);
+
+      reject({
+        retcode: 500,
+        retmsg: {
+          code: constants.E_DBERROR,
+          msg: constants.E_DBERROR_MSG,
+          error: err.message,
+        },
+      });
     } finally {
       if (db) {
         disconnect(db);

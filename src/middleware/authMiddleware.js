@@ -13,7 +13,8 @@ module.exports.requireApiAuth = async (req, res, next) => {
       // console.log("Validated user id: ", apiId);
       next();
     } catch (error) {
-      return res.status(403).json({ msg: "Forbidden" });
+      console.error(error);
+      return res.status(error.retcode).json(error.retmsg);
     }
   } else {
     return res.status(401).json({ msg: "Unauthorized" });
@@ -29,7 +30,7 @@ module.exports.requireUserAuth = async (req, res, next) => {
       if (error) {
         // console.log(error);
 
-        return res.status(403).json({ msg: "Forbidden" });
+        return res.status(error.retcode).json(error.retmsg);
       }
       req.user = user;
       next();

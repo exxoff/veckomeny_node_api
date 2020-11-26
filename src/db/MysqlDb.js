@@ -24,9 +24,12 @@ module.exports.establishConnection = () => {
         // console.log("Connection error");
 
         reject({
-          code: constants.E_DBERROR,
-          msg: constants.E_DBERROR_MSG,
-          error: { err },
+          retcode: 500,
+          retmsg: {
+            code: constants.E_DBERROR,
+            msg: constants.E_DBERROR_MSG,
+            error: err.message,
+          },
         });
         return;
       }
