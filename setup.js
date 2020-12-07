@@ -23,14 +23,14 @@ const addAdminUser = async (username, password, name) => {
   let conn = undefined;
   try {
     conn = await establishConnection();
-    console.log("Connection:", conn);
+    // console.log("Connection:", conn);
     const result = await addPost(conn, "users", newUser);
     //Strip the password from the result.
-    delete result.data.password;
+    //delete result.data.password;
 
-    console.log(result.retmsg);
+    console.log("User created.");
   } catch (error) {
-    console.error(error.retmsg);
+    console.error("User not created:", error.retmsg.error);
   } finally {
     disconnect(conn);
   }

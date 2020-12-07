@@ -7,25 +7,19 @@
 /**
  * @apiDefine SingleEntityHeader
  *
- * @apiSuccess {String} code Success code
- * @apiSuccess {String} msg Success message
- * @apiSuccess {Object} data Data
  *
  */
 
 /**
  * @apiDefine MultiEntityHeader
  *
- * @apiSuccess {String} code Success code
- * @apiSuccess {String} msg Success message
- * @apiSuccess {Object[]} data Data
  *
  */
 
 /**
  * @apiDefine EntityTimeStamps
- * @apiSuccess {Timestamp} data.created_at Record creation date
- * @apiSuccess {Timestamp} data.updated_at Last record update date
+ * @apiSuccess {Timestamp} created_at Record creation date
+ * @apiSuccess {Timestamp} updated_at Last record update date
  */
 
 /**
@@ -37,34 +31,31 @@
 
 /**
  * @apiDefine RecipeEntity
- * @apiSuccess {Number} data.id ID
- * @apiSuccess {String} data.name Name of the recipe
- * @apiSuccess {String} data.link URL to the recipe
- * @apiSuccess {String} data.comment Recipe comment
- * @apiSuccess {Boolean} data.deleted Specifies if recipe is archived
+ * @apiSuccess {Number} id ID
+ * @apiSuccess {String} name Name of the recipe
+ * @apiSuccess {String} link URL to the recipe
+ * @apiSuccess {String} comment Recipe comment
+ * @apiSuccess {Boolean} deleted Specifies if recipe is archived
  */
 
 /**
  * @apiDefine CategoryEntity
- * @apiSuccess {Number} data.id ID
- * @apiSuccess {String} data.name Name of the category
+ * @apiSuccess {Number} id ID
+ * @apiSuccess {String} name Name of the category
  */
 
 /**
  * @apiDefine MenuEntity
- * @apiSuccess {Number} data.id ID
- * @apiSuccess {Date} data.date Menu date
- * @apiSuccess {Number} data.recipe_id ID of the dish served
- * @apiSuccess {String} data.comment Menu comment
+ * @apiSuccess {Number} id ID
+ * @apiSuccess {Date} date Menu date
+ * @apiSuccess {Number} recipe_id ID of the dish served
+ * @apiSuccess {String} comment Menu comment
  */
 
 /**
  * @apiDefine RecipeCollectionExample
  * @apiSuccessExample Example:
- * {
- * "code": "I_SUCCESS",
- *   "msg": "OK",
- *   "data":
+ *
  *   [
  *      {
  *          "id": 11,
@@ -84,15 +75,11 @@
  *          "comment": "Don't rinse the noodles."
  *      }
  *  ]
- * }
  */
 
 /**
  * @apiDefine RecipeExamle
  *{
- *    "code": "I_SUCCESS",
- *    "msg": "OK",
- *    "data": {
  *        "id": 101,
  *        "created_at": "2020-03-06T10:07:46.000Z",
  *        "updated_at": "2020-03-06T10:07:46.000Z",
@@ -100,16 +87,12 @@
  *        "link": "http://www.ica.se/recept/paprikasoppa-med-vasterbottenstoast-715932/",
  *        "comment": "",
  *        "deleted": false
- *    }
  *}
  */
 
 /**
  * @apiDefine CategoryCollectionExample
- * {
- *  "code": "I_SUCCESS",
- *  "msg": "OK",
- *  "data": [
+ * [
  *      {
  *          "id": 1,
  *          "created_at": "2020-03-06T10:07:45.000Z",
@@ -122,6 +105,5 @@
  *          "updated_at": "2020-03-06T10:07:45.000Z",
  *          "name": "Förrätt"
  *      }
- *    ]
- *  }
+ *   ]
  */

@@ -21,6 +21,8 @@ const { requireApiAuth } = require(path.resolve(
   "authMiddleware.js"
 ));
 
+// const { getBoolean } = require("../../helpers/getBoolean");
+const { getBoolean } = require(path.resolve("src/helpers", "getBoolean"));
 // Middleware
 const jsonParser = bodyParser.json();
 router.use(requireApiAuth);
@@ -38,6 +40,8 @@ const TABLE = constants.RECIPE_TABLE;
  * @apiParam (Query String) {String} [name] Filter on name
  * @apiParam (Query String) {String[]} [cat] Filter on categories
  * @apiParam (Query String) {String} [comment] Filter on comment
+ * @apiParam (Query String) {Boolean} [deleted] Filter on deleted
+ * @apiParam (Query String) {Boolean} [includeDeleted] Whether to iclude deleted recipes in result
  *
  * @apiUse Pagination
  * @apiUse MultiEntityHeader
@@ -51,7 +55,12 @@ const TABLE = constants.RECIPE_TABLE;
 router.get("/", async (req, res) => {
   let conn = undefined;
   const pagination = ({ limit, offset } = req.query);
-  let { name, cat, comment } = req.query;
+  let { name, cat, comment, deleted, includeDeleted } = req.query;
+
+  if (!deleted) {
+    deleted = "false";
+  }
+  willIncludeDeleted = getBoolean(includeDeleted);
 
   if (cat && !Array.isArray(cat)) {
     cat = [cat];
@@ -62,13 +71,23 @@ router.get("/", async (req, res) => {
       name,
       categories: cat,
       comment,
+      deleted,
     });
+    let washedResult = undefined;
+
     if (result.retmsg.data) {
-      result.retmsg.data.forEach((element) => {
+      if (!willIncludeDeleted) {
+        washedResult = result.retmsg.data.filter((element) => {
+          return element.deleted !== 1;
+        });
+      } else {
+        washedResult = result.retmsg.data;
+      }
+      washedResult.forEach((element) => {
         element.deleted = !!+element.deleted;
       });
     }
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(washedResult);
   } catch (error) {
     console.log(error);
     return res.status(error.retcode).json(error.retmsg);
@@ -86,6 +105,8 @@ router.get("/", async (req, res) => {
  *
  * @apiParam (Parameters) {Number} id ID
  *
+ * @apiParam (Query String) {Boolean} [includeDeleted] Whether to iclude deleted recipes in result
+ *
  * @apiUse SingleEntityHeader
  * @apiUSe RecipeEntity
  *
@@ -93,8 +114,15 @@ router.get("/", async (req, res) => {
  *
  * @apiUse Error
  */
+
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
+  const { includeDeleted } = req.query;
+  let deleted = getBoolean(includeDeleted);
+  console.log("INCLUDE DELETED:", deleted);
+  if (includeDeleted && includeDeleted.toLocaleLowerCase === "true") {
+    deleted = true;
+  }
   if (isNaN(id)) {
     return res.status(400).json({
       code: constants.E_ID_NAN,
@@ -107,9 +135,18 @@ router.get("/:id", async (req, res) => {
     conn = await establishConnection();
 
     const result = await getPost(conn, TABLE, { id });
-    result.retmsg.data.deleted = !!+result.retmsg.data.deleted;
-    return res.status(result.retcode).json(result.retmsg);
+
+    if (result.length < 1) {
+      return res.status(404).json({});
+    } else {
+      if (!deleted && result.retmsg.data.deleted === 1) {
+        return res.status(404).json({});
+      }
+      result.retmsg.data.deleted = !!+result.retmsg.data.deleted;
+      return res.status(result.retcode).json(result.retmsg.data);
+    }
   } catch (error) {
+    console.error("ERROR:", error);
     return res.status(error.retcode).json(error.retmsg);
   } finally {
     disconnect(conn);
@@ -158,7 +195,7 @@ router.post("/", jsonParser, async (req, res) => {
     });
     // console.log("Cats:", insertObj);
     await setRecipeCategories(conn, undefined, insertObj);
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -189,7 +226,7 @@ router.post("/", jsonParser, async (req, res) => {
  */
 
 router.put("/:id", jsonParser, async (req, res) => {
-  const { name, link, comment, categories } = req.body;
+  const updateObj = ({ name, link, comment, categories, image_url } = req.body);
   const id = parseInt(req.params.id);
 
   if (isNaN(id)) {
@@ -206,11 +243,7 @@ router.put("/:id", jsonParser, async (req, res) => {
   let conn = undefined;
   try {
     conn = await establishConnection();
-    const updateRequest = await updatePost(conn, TABLE, id, {
-      name,
-      link,
-      comment,
-    });
+    const updateRequest = await updatePost(conn, TABLE, id, updateObj);
     if (categories) {
       let insertObj = [];
       if (updateRequest.retmsg.data) {
@@ -223,7 +256,7 @@ router.put("/:id", jsonParser, async (req, res) => {
 
     const result = await getPost(conn, TABLE, { id });
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     console.log(error);
     return res.status(error.retcode).json(error.retmsg);
@@ -235,17 +268,14 @@ router.put("/:id", jsonParser, async (req, res) => {
 });
 
 /**
- * @api {post} /recipes Add a recipe
- * @apiName AddRecipe
+ * @api {delete} /recipes Delete a recipe
+ * @apiName DeleteRecipe
  * @apiGroup recipes
  * @apiVersion 1.0.0
  * @apiPermission API
  *
  * @apiParam (Parameters) {Number} id ID
  *
- * @apiSuccess {String} code Success code
- * @apiSuccess {String} msg Success message
- * @apiSuccess {String} data Number of affected rows
  *
  * @apiUse Error
  */
@@ -271,7 +301,7 @@ router.delete("/:id", async (req, res) => {
     // }
 
     await conn.commit();
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(204).json({});
   } catch (error) {
     console.error(error);
     if (conn) {
@@ -316,7 +346,7 @@ router.get("/:id/categories", async (req, res) => {
   try {
     conn = await establishConnection();
     const result = await getRecipeCategories(conn, id);
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -346,6 +376,7 @@ router.get("/:id/categories", async (req, res) => {
 
 router.get("/:id/menus", async (req, res) => {
   const { id } = req.params;
+
   if (isNaN(id)) {
     return res
       .status(400)
@@ -356,7 +387,7 @@ router.get("/:id/menus", async (req, res) => {
   try {
     conn = await establishConnection();
     const result = await getRecipeMenus(conn, id);
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -379,7 +410,7 @@ router.get("/:id/menus", async (req, res) => {
 //   try {
 //     conn = await establishConnection();
 //     const result = await getRecipeMenus(conn, id);
-//     return res.status(result.retcode).json(result.retmsg);
+//     return res.status(result.retcode).json(result.retmsg.data);
 //   } catch (error) {
 //     return res.status(error.retcode).json(error.retmsg);
 //   } finally {

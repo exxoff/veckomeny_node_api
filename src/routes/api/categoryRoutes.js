@@ -53,7 +53,7 @@ router.get("/", async (req, res) => {
     conn = await establishConnection();
     const result = await getAll(conn, TABLE, pagination, { name });
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     console.log("ERROR:", error);
     return res.status(error.retcode).json(error.retmsg);
@@ -95,7 +95,7 @@ router.get("/:id", async (req, res) => {
     conn = await establishConnection();
     const result = await getPost(conn, TABLE, { id });
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -135,7 +135,7 @@ router.post("/", jsonParser, async (req, res) => {
     conn = await establishConnection();
     const result = await addPost(conn, TABLE, { name });
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -181,7 +181,7 @@ router.put("/:id", jsonParser, async (req, res) => {
     conn = await establishConnection();
     await updatePost(conn, TABLE, id, { name });
     const result = await getPost(conn, TABLE, { id });
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -243,8 +243,6 @@ router.delete("/:id", async (req, res) => {
  *
  * @apiParam (Parameters) {Number} id ID
  *
- * @apiUse Pagination
- * @apiUse MultiEntityHeader
  * @apiUSe RecipeEntity
  * @apiUse RecipeCollectionExample
  * @apiUse EntityTimeStamps
@@ -270,7 +268,7 @@ router.get("/:id/recipes", async (req, res) => {
         element.deleted = !!+element.deleted;
       });
     }
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     console.log(error);
     return res.status(error.retcode).json(error.retmsg);

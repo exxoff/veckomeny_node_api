@@ -84,7 +84,7 @@ router.post("/register", async (req, res) => {
     //Strip the password from the result.
     delete result.retmsg.data.password;
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     console.error("Error:", error);
     return res.status(error.retcode).json(error.retmsg);
@@ -172,7 +172,7 @@ router.get("/users", requireUserAuth, async (req, res) => {
       });
     }
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     console.log("Error:", error);
     return res.status(error.retcode).json(error.retmsg);
@@ -207,7 +207,7 @@ router.get("/users/:id", requireUserAuth, async (req, res) => {
     const result = await getPost(conn, constants.USERS_TABLE, { id });
     delete result.retmsg.data.password;
     result.retmsg.data.admin = !!+result.retmsg.data.admin;
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -252,7 +252,7 @@ router.put("/users/:id", requireUserAuth, async (req, res) => {
     delete result.retmsg.data.password;
     result.retmsg.data.admin = !!+result.retmsg.data.admin;
     // const result = await updateUser(req.body, id);
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -305,10 +305,11 @@ router.post("/users", requireUserAuth, jsonParser, async (req, res) => {
     conn = await establishConnection();
     const result = await addPost(conn, constants.USERS_TABLE, newUser);
     //Strip the password from the result.
-    delete result.data.password;
+    delete result.retmsg.data.password;
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
+    console.error("Error:", error);
     return res.status(error.retcode).json(error.retmsg);
   } finally {
     disconnect(conn);
@@ -339,7 +340,7 @@ router.delete("/users/:id", requireUserAuth, jsonParser, async (req, res) => {
     conn = await establishConnection();
     const result = await deletePost(conn, constants.USERS_TABLE, { id });
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -386,7 +387,7 @@ router.post("/keys", requireUserAuth, async (req, res) => {
     const result = await addPost(conn, constants.KEYS_TABLE, newKey);
     result.retmsg.data.revoked = !!+result.retmsg.data.revoked;
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -428,7 +429,7 @@ router.get("/keys", requireUserAuth, async (req, res) => {
       });
     }
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     console.error(error);
     return res.status(error.retcode).json(error.retmsg);
@@ -470,7 +471,7 @@ router.get("/keys/:id", requireUserAuth, async (req, res) => {
     const result = await getPost(conn, constants.KEYS_TABLE, { id });
     // console.log(result);
     result.retmsg.data.revoked = !!+result.retmsg.data.revoked;
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -505,7 +506,7 @@ router.put("/keys/:id", requireUserAuth, async (req, res) => {
     await updatePost(conn, constants.KEYS_TABLE, id, apikey);
     const result = await getPost(conn, constants.KEYS_TABLE, { id });
     result.retmsg.data.revoked = !!+result.retmsg.data.revoked;
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {

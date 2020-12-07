@@ -1,6 +1,10 @@
+const { link } = require("fs");
 const path = require("path");
 const constants = require(path.resolve("src", "constants"));
+// const { getBoolean } = require("../helpers/getBoolean");
+const { getBoolean } = require(path.resolve("src/helpers", "getBoolean"));
 
+//TODO: Do not select deleted recipes by default
 module.exports.getAll = async (connection, table, pagination, searchObj) => {
   return new Promise((resolve, reject) => {
     let sql = `SELECT * FROM ${table} WHERE 1`;
@@ -22,13 +26,19 @@ module.exports.getAll = async (connection, table, pagination, searchObj) => {
       if (searchObj.after) {
         sql = `${sql} AND date >= '${searchObj.after}'`;
       }
+      if (searchObj.date) {
+        sql = `${sql} AND date = '${searchObj.date}'`;
+      }
+      if (searchObj.deleted) {
+        sql = `${sql} AND deleted = ${getBoolean(searchObj.deleted)}`;
+      }
     }
 
     if (pagination.limit) {
       sql = `${sql} limit ${pagination.offset || 0},${pagination.limit}`;
     }
     // let n = "";
-    // console.log("SQL:", sql);
+    console.log("SQL:", sql);
     connection.query(sql, (error, result) => {
       if (error) {
         reject({
@@ -231,11 +241,11 @@ module.exports.deletePost = async (connection, table, post) => {
           });
         } else {
           resolve({
-            retcode: 200,
+            retcode: 204,
             retmsg: {
               code: constants.I_SUCCESS,
               msg: constants.I_SUCCESS_MSG,
-              data: result.affectedRows,
+              data: {},
             },
           });
         }
@@ -305,32 +315,32 @@ module.exports.getRecipeCategories = async (connection, id) => {
   });
 };
 
-module.exports.getRecipeMenus = async (connection, id) => {
-  return new Promise((resolve, reject) => {
-    sql = `SELECT * FROM ${constants.MENU_TABLE} WHERE recipe_id=?`;
-    connection.query(sql, [id], (error, result) => {
-      if (error) {
-        reject({
-          retcode: 500,
-          retmsg: {
-            code: constants.E_DBERROR,
-            msg: constants.E_DBERROR_MSG,
-            error: error,
-          },
-        });
-      } else {
-        resolve({
-          retcode: 200,
-          retmsg: {
-            code: constants.I_SUCCESS,
-            msg: constants.I_SUCCESS_MSG,
-            data: result,
-          },
-        });
-      }
-    });
-  });
-};
+// module.exports.getRecipeMenus = async (connection, id) => {
+//   return new Promise((resolve, reject) => {
+//     sql = `SELECT * FROM ${constants.MENU_TABLE} WHERE recipe_id=?`;
+//     connection.query(sql, [id], (error, result) => {
+//       if (error) {
+//         reject({
+//           retcode: 500,
+//           retmsg: {
+//             code: constants.E_DBERROR,
+//             msg: constants.E_DBERROR_MSG,
+//             error: error,
+//           },
+//         });
+//       } else {
+//         resolve({
+//           retcode: 200,
+//           retmsg: {
+//             code: constants.I_SUCCESS,
+//             msg: constants.I_SUCCESS_MSG,
+//             data: result,
+//           },
+//         });
+//       }
+//     });
+//   });
+// };
 
 module.exports.setRecipeCategories = async (connection, id, insertObj) => {
   return new Promise(async (resolve, reject) => {
@@ -355,3 +365,134 @@ module.exports.setRecipeCategories = async (connection, id, insertObj) => {
     });
   });
 };
+
+module.exports.getMenuRecipes = async (connection, searchObj) => {
+  console.log("Checking on", searchObj);
+  return new Promise((resolve, reject) => {
+    let sql = `SELECT m.id as mid,m.comment as mcomment,m.date,r.id,r.name,r.link,r.comment,r.deleted,r.created_at,r.updated_at FROM ${constants.MENU_RECIPE_XREF_TABLE}
+    JOIN ${constants.RECIPE_TABLE} as r ON ${constants.MENU_RECIPE_XREF_TABLE}.recipe_id=r.id
+    JOIN ${constants.MENU_TABLE} as m ON ${constants.MENU_RECIPE_XREF_TABLE}.menu_id=m.id
+    WHERE ?`;
+    connection.query(sql, [searchObj], (error, result) => {
+      if (error) {
+        reject({
+          retcode: 500,
+          retmsg: {
+            code: constants.E_DBERROR,
+            msg: constants.E_DBERROR_MSG,
+            error: error,
+          },
+        });
+      } else {
+        console.log(result);
+        let menu = undefined;
+        if (result.length > 0) {
+          menu = {
+            id: result[0].mid,
+            date: result[0].date,
+            comment: result[0].mcomment,
+          };
+          const recipes = result.map((r) => ({
+            id: r.id,
+            name: r.name,
+            link: r.link,
+            comment: r.comment,
+            deleted: r.deleted,
+            creted_at: r.created_at,
+            updated_at: r.updated_at,
+          }));
+          menu.recipes = recipes;
+        }
+        resolve({
+          retcode: 200,
+          retmsg: {
+            code: constants.I_SUCCESS,
+            msg: constants.I_SUCCESS_MSG,
+            data: menu,
+          },
+        });
+      }
+    });
+  });
+};
+
+module.exports.getRecipeMenus = async (connection, id) => {
+  return new Promise((resolve, reject) => {
+    sql = sql = `select m.id,m.created_at,m.updated_at,m.date FROM ${constants.MENU_RECIPE_XREF_TABLE}\
+    JOIN ${constants.RECIPE_TABLE} as r ON ${constants.MENU_RECIPE_XREF_TABLE}.recipe_id=r.id\
+    JOIN ${constants.MENU_TABLE} as m ON ${constants.MENU_RECIPE_XREF_TABLE}.menu_id=m.id\
+    WHERE recipe_id=?`;
+    connection.query(sql, [id], (error, result) => {
+      if (error) {
+        reject({
+          retcode: 500,
+          retmsg: {
+            code: constants.E_DBERROR,
+            msg: constants.E_DBERROR_MSG,
+            error: error,
+          },
+        });
+      } else {
+        resolve({
+          retcode: 200,
+          retmsg: {
+            code: constants.I_SUCCESS,
+            msg: constants.I_SUCCESS_MSG,
+            data: result,
+          },
+        });
+      }
+    });
+  });
+};
+
+//TODO: Add to menu_recipe XREF table
+module.exports.setMenuRecipesXref = async (connection, insertObj) => {
+  return new Promise(async (resolve, reject) => {
+    let sql = `INSERT INTO ${constants.MENU_RECIPE_XREF_TABLE} (menu_id,recipe_id) values ?`;
+    const t = insertObj.map((r) => new Array(r.menu_id, r.recipe_id));
+
+    // let sql = `INSERT INTO ${constants.MENU_RECIPE_XREF_TABLE} (menu_id,recipe_id) values ?`;
+    connection.query(sql, [t], (error, result) => {
+      if (error) {
+        reject({
+          code: constants.E_DBERROR,
+          msg: constants.E_DBERROR_MSG,
+          error: error,
+        });
+      } else {
+        resolve({
+          code: constants.I_SUCCESS,
+          msg: constants.I_SUCCESS_MSG,
+          data: result,
+        });
+      }
+    });
+  });
+};
+
+//TODO: #2 Delete from menu_recipe XREF table
+module.exports.deleteFromMenuRecipeXref = async (connection, queryObj) => {
+  return new Promise(async (resolve, reject) => {
+    let sql = `DELETE FROM ${constants.MENU_RECIPE_XREF_TABLE} WHERE ?`;
+    connection.query(sql, [queryObj], (error, result) => {
+      if (error) {
+        reject({
+          code: constants.E_DBERROR,
+          msg: constants.E_DBERROR_MSG,
+          error: error,
+        });
+      } else {
+        resolve({
+          code: constants.I_SUCCESS,
+          msg: constants.I_SUCCESS_MSG,
+          data: result,
+        });
+      }
+    });
+  });
+};
+
+// Delete a menu
+
+// Remove a recipe from a Menu

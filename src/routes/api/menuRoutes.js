@@ -3,6 +3,8 @@ const path = require("path");
 const router = express.Router();
 const bodyParser = require("body-parser");
 const moment = require("moment");
+const { getMenuRecipes } = require("../../db/transactions");
+const { get } = require("http");
 const constants = require(path.resolve("src", "constants"));
 const { establishConnection, disconnect } = require(path.resolve(
   "src/db",
@@ -14,6 +16,8 @@ const {
   addPost,
   updatePost,
   deletePost,
+  deleteFromMenuRecipeXref,
+  setMenuRecipesXref,
 } = require(path.resolve("src/db", "transactions.js"));
 
 const { requireApiAuth } = require(path.resolve(
@@ -29,7 +33,7 @@ const TABLE = constants.MENU_TABLE;
 // Work methods
 
 /**
- * @api {get} /menus Get all menus
+ * @api {get} /menus Get menus
  * @apiName GetMenus
  * @apiGroup menus
  * @apiVersion 1.0.0
@@ -37,6 +41,7 @@ const TABLE = constants.MENU_TABLE;
  *
  * @apiParam (Query String) {Date} [before] Filter on date (yyyy-MM-dd)
  * @apiParam (Query String) {Date} [after] Filter on date (yyyy-MM-dd)
+ * @apiParam (Query String) {Date} [date] Filter on date (yyyy-MM-dd)
  * @apiParam (Query String) {String} [comment] Filter on comment
  *
  * @apiUse Pagination
@@ -51,13 +56,19 @@ const TABLE = constants.MENU_TABLE;
 router.get("/", async (req, res) => {
   let conn = undefined;
   const pagination = ({ limit, offset } = req.query);
-  let searchObj = ({ before, after, comment } = req.query);
+  let searchObj = ({ date, before, after, comment } = req.query);
   try {
     conn = await establishConnection();
-    const result = await getAll(conn, TABLE, pagination, searchObj);
+    let result = undefined;
+    if (date) {
+      result = await getMenuRecipes(conn, { date: date });
+    } else {
+      result = await getAll(conn, TABLE, pagination, searchObj);
+    }
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
+    console.error("Error:", error);
     return res.status(error.retcode).json(error.retmsg);
   } finally {
     if (conn) {
@@ -95,7 +106,7 @@ router.get("/:id", async (req, res) => {
     conn = await establishConnection();
 
     result = await getPost(conn, TABLE, { id });
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -135,21 +146,7 @@ router.post("/", jsonParser, async (req, res) => {
       error: `Menu date is required`,
     });
   }
-  if (!recipe_id) {
-    return res.status(400).json({
-      code: constants.E_INFOMISSING,
-      msg: constants.E_INFOMISSING,
-      error: `Recipe ID is required`,
-    });
-  }
-  const parsedId = parseInt(recipe_id);
-  if (isNaN(parsedId)) {
-    return res.status(400).json({
-      code: constants.E_ID_NAN,
-      msg: constants.E_ID_NAN_MSG,
-      error: `"${recipe_id}" is not a number`,
-    });
-  }
+
   if (!moment(date, "YYYY-MM-DD").isValid()) {
     return res.status(400).json({
       code: constants.E_NOTDATE,
@@ -160,23 +157,12 @@ router.post("/", jsonParser, async (req, res) => {
   conn = undefined;
   try {
     conn = await establishConnection();
-    const chkResult = await getPost(conn, constants.RECIPE_TABLE, {
-      id: parsedId,
-    });
-    console.log(chkResult);
-    if (chkResult.retmsg.code == constants.E_NOTFOUND) {
-      return res.status(400).json({
-        code: constants.E_INVALIDDATA,
-        msg: constants.E_INVALIDDATA_MSG,
-        error: `${parsedId} is not a valid Recipe ID`,
-      });
-    }
+
     const result = await addPost(conn, TABLE, {
       date,
       comment,
-      recipe_id: parsedId,
     });
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -260,7 +246,7 @@ router.put("/:id", jsonParser, async (req, res) => {
       recipe_id: parsedId,
     });
 
-    return res.status(result.retcode).json(result.retmsg);
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     console.log(error);
     return res.status(error.retcode).json(error.retmsg);
@@ -280,12 +266,6 @@ router.put("/:id", jsonParser, async (req, res) => {
  *
  * @apiParam (Parameters) {number} id Menu ID
  *
- *
- * @apiSuccess {String} code Success code
- * @apiSuccess {String} msg Success message
- * @apiSuccess {String} data Number of affected rows
- *
- *
  * @apiUse Error
  */
 
@@ -299,10 +279,51 @@ router.delete("/:id", async (req, res) => {
   let conn = undefined;
   try {
     conn = await establishConnection();
-
+    await conn.beginTransaction();
+    await deleteFromMenuRecipeXref(conn);
     const result = await deletePost(conn, TABLE, { id });
 
-    return res.status(result.retcode).json(result.retmsg);
+    conn.commit();
+    return res.status(result.retcode).json(result.retmsg.data);
+  } catch (error) {
+    conn.rollback();
+    return res.status(error.retcode).json(error.retmsg);
+  } finally {
+    if (conn) {
+      disconnect(conn);
+    }
+  }
+});
+
+/**
+ * @api {get} /menus/:id/recipes Get recipes for menu
+ * @apiName GetMenuRecipes
+ * @apiGroup menus
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id ID
+
+ * @apiUSe RecipeEntity
+ * @apiUse RecipeCollectionExample
+ * @apiUse EntityTimeStamps
+ *
+ * @apiUse Error
+ */
+
+router.get("/:id/recipes", async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res
+      .status(400)
+      .json({ code: constants.E_ID_NAN, msg: constants.E_ID_NAN_MSG });
+  }
+  let conn = undefined;
+  try {
+    conn = await establishConnection();
+
+    result = await getMenuRecipes(conn, { menu_id: id });
+    return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     return res.status(error.retcode).json(error.retmsg);
   } finally {
@@ -312,4 +333,44 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+/**
+ * @api {post} /menus/:id/recipes Add recipes to menu
+ * @apiName AddMenuRecipes
+ * @apiGroup menus
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Number} id Menu ID
+ * @apiParam (Request Message Body) {Array} recipes Array of recipe IDs
+ * @apiParam (Request Message Body) {number} recipes.id The ID of the dish
+ *
+ * @apiUse Error
+ */
+
+router.post("/:id/recipes", async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res
+      .status(400)
+      .json({ code: constants.E_ID_NAN, msg: constants.E_ID_NAN_MSG });
+  }
+  const recipes = req.body;
+  const arr = recipes.map((rec) => ({ menu_id: id, recipe_id: rec.id }));
+  console.log("RECS:", arr);
+  let conn = undefined;
+  try {
+    conn = await establishConnection();
+
+    result = await setMenuRecipesXref(conn, arr);
+    console.log(result);
+    return res.status(204).json({});
+  } catch (error) {
+    console.error("ERROR:", error);
+    return res.status(error.retcode).json(error.retmsg);
+  } finally {
+    if (conn) {
+      disconnect(conn);
+    }
+  }
+});
 module.exports = router;

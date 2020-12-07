@@ -37,4 +37,5 @@ module.exports = Object.freeze({
   JOIN_TABLE: "category_recipe",
   USERS_TABLE: "users",
   KEYS_TABLE: "apikeys",
+  MENU_RECIPE_XREF_TABLE: "menu_recipe",
 });
