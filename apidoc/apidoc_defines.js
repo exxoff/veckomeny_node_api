@@ -48,7 +48,6 @@
  * @apiDefine MenuEntity
  * @apiSuccess {Number} id ID
  * @apiSuccess {Date} date Menu date
- * @apiSuccess {Number} recipe_id ID of the dish served
  * @apiSuccess {String} comment Menu comment
  */
 
@@ -106,4 +105,34 @@
  *          "name": "Förrätt"
  *      }
  *   ]
+ */
+/**
+ * @apiDefine FullMenuExample
+ * @apiSuccessExample Example:
+ *
+ * {
+ *   "id": 284,
+ *   "date": "2016-03-14T23:00:00.000Z",
+ *   "comment": "Susan's birthday!",
+ *   "recipes":
+ *   [
+ *      {
+ *          "id": 11,
+ *
+ *          "created_at": "2020-03-06T10:07:46.000Z",
+ *          "updated_at": "2020-03-06T10:07:46.000Z",
+ *          "name": "Chicken caserole with mushrooms",
+ *          "link": "",
+ *          "comment": ""
+ *      },
+ *      {
+ *          "id": 35,
+ *          "created_at": "2020-03-06T10:07:46.000Z",
+ *          "updated_at": "2020-03-06T10:07:46.000Z",
+ *          "name": "Oven baked salmon with chili and lime with a noodle salad",
+ *          "link": "http://www.coop.se/Recept--mat/Recept/c/chili--och-limelax-i-ugn-med-nudelsallad/",
+ *          "comment": "Don't rinse the noodles."
+ *      }
+ *  ]
+ * }
  */

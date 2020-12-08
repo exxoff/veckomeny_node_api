@@ -303,7 +303,6 @@ router.delete("/:id", async (req, res) => {
  * @apiPermission API
  *
  * @apiParam (Parameters) {Number} id ID
-
  * @apiUSe RecipeEntity
  * @apiUse RecipeCollectionExample
  * @apiUse EntityTimeStamps
@@ -378,4 +377,44 @@ router.post("/:id/recipes", async (req, res) => {
   }
 });
 
+/**
+ * @api {get} /menus/date/:date Get menus by specific date
+ * @apiName GetMenusByDate
+ * @apiGroup menus
+ * @apiVersion 1.0.0
+ * @apiPermission API
+ *
+ * @apiParam (Parameters) {Date} date Menu date (yyyy-MM-dd)
+ *
+ * @apiUse SingleEntityHeader
+ * @apiUSe MenuEntity
+ * @apiSuccess {Array} recipes Recipes for the menu
+ * @apiUse FullMenuExample
+ *
+ 
+ *
+ * @apiUse Error
+ */
+
+router.get("/date/:date", async (req, res) => {
+  let conn = undefined;
+
+  let { date } = req.params;
+  try {
+    conn = await establishConnection();
+    let result = undefined;
+    if (date) {
+      result = await getMenuRecipes(conn, { date: date });
+    }
+
+    return res.status(result.retcode).json(result.retmsg.data);
+  } catch (error) {
+    console.error("Error:", error);
+    return res.status(error.retcode).json(error.retmsg);
+  } finally {
+    if (conn) {
+      disconnect(conn);
+    }
+  }
+});
 module.exports = router;
