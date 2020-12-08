@@ -102,7 +102,7 @@ module.exports.validateApiKey = async (apikey) => {
         retmsg: {
           code: constants.E_DBERROR,
           msg: constants.E_DBERROR_MSG,
-          error: err.message,
+          error: error.message,
         },
       });
     } finally {

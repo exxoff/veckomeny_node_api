@@ -354,23 +354,28 @@ router.post("/:id/recipes", async (req, res) => {
       .status(400)
       .json({ code: constants.E_ID_NAN, msg: constants.E_ID_NAN_MSG });
   }
-  const recipes = req.body;
+
+  const { recipes } = req.body;
   const arr = recipes.map((rec) => ({ menu_id: id, recipe_id: rec.id }));
-  console.log("RECS:", arr);
+  // console.log("RECS:", arr);
   let conn = undefined;
   try {
     conn = await establishConnection();
-
+    await conn.beginTransaction();
+    await deleteFromMenuRecipeXref(conn, { menu_id: id });
     result = await setMenuRecipesXref(conn, arr);
     console.log(result);
+    await conn.commit();
     return res.status(204).json({});
   } catch (error) {
     console.error("ERROR:", error);
+    await conn.rollback();
     return res.status(error.retcode).json(error.retmsg);
   } finally {
     if (conn) {
-      disconnect(conn);
+      await disconnect(conn);
     }
   }
 });
+
 module.exports = router;

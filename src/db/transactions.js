@@ -4,7 +4,6 @@ const constants = require(path.resolve("src", "constants"));
 // const { getBoolean } = require("../helpers/getBoolean");
 const { getBoolean } = require(path.resolve("src/helpers", "getBoolean"));
 
-//TODO: Do not select deleted recipes by default
 module.exports.getAll = async (connection, table, pagination, searchObj) => {
   return new Promise((resolve, reject) => {
     let sql = `SELECT * FROM ${table} WHERE 1`;
@@ -446,7 +445,6 @@ module.exports.getRecipeMenus = async (connection, id) => {
   });
 };
 
-//TODO: Add to menu_recipe XREF table
 module.exports.setMenuRecipesXref = async (connection, insertObj) => {
   return new Promise(async (resolve, reject) => {
     let sql = `INSERT INTO ${constants.MENU_RECIPE_XREF_TABLE} (menu_id,recipe_id) values ?`;
@@ -471,7 +469,6 @@ module.exports.setMenuRecipesXref = async (connection, insertObj) => {
   });
 };
 
-//TODO: #2 Delete from menu_recipe XREF table
 module.exports.deleteFromMenuRecipeXref = async (connection, queryObj) => {
   return new Promise(async (resolve, reject) => {
     let sql = `DELETE FROM ${constants.MENU_RECIPE_XREF_TABLE} WHERE ?`;
