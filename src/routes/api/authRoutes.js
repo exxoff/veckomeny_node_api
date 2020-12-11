@@ -2,7 +2,6 @@ const express = require("express");
 const path = require("path");
 const router = express.Router();
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const { validateUser } = require(path.resolve("src/db", "auth.js"));
 const { requireUserAuth } = require(path.resolve(
@@ -21,6 +20,7 @@ const {
   getPost,
 } = require(path.resolve("src/db", "transactions.js"));
 const constants = require(path.resolve("src", "constants"));
+const logger = require(path.resolve("src/helpers", "logger"))(module);
 
 const jsonParser = bodyParser.json();
 
@@ -58,7 +58,7 @@ function randomString(length, chars) {
 
 router.post("/register", async (req, res) => {
   // Not accepting user registration,comment out below to accept new users.
-
+  logger.debug(`Entered /register`);
   if (parseInt(process.env.ALLOW_REGISTRATION) !== 1) {
     return res.status(403).json({
       code: constants.I_NOT_ACCEPTING_NEW_USERS,
@@ -76,18 +76,27 @@ router.post("/register", async (req, res) => {
   }
 
   let conn = undefined;
+  logger.debug(`Creating hash...`);
   const hash = await bcrypt.hash(password, 10);
+  logger.debug(`Hash created, [${hash.substring(0, 10)}...]`);
   const newUser = { name, username, password: hash, admin };
   try {
     conn = await establishConnection();
+    logger.debug(`Registering user ${JSON.stringify(newUser)}`);
     const result = await addPost(conn, constants.USERS_TABLE, newUser);
     //Strip the password from the result.
     delete result.retmsg.data.password;
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    console.error("Error:", error);
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -112,6 +121,7 @@ router.post("/register", async (req, res) => {
  */
 
 router.post("/login", async (req, res) => {
+  logger.debug(`Entering /login`);
   const { username, password } = req.body;
   try {
     if (!username || !password) {
@@ -120,13 +130,20 @@ router.post("/login", async (req, res) => {
         .json({ msg: "Username and password are required" });
     }
     // console.log(username, password);
-
+    logger.debug(`Validating user ${username}`);
     const token = await validateUser(username, password);
     // console.log("Token:", token);
+    logger.debug(`User validated, token: ${token}`);
     return res.json({ token: token });
   } catch (error) {
-    console.error("Error:", error);
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   }
 });
 
@@ -158,6 +175,7 @@ router.post("/login", async (req, res) => {
  * @apiSuccess {Timestamp} data.updated_at Last record update date
  */
 router.get("/users", requireUserAuth, async (req, res) => {
+  logger.debug(`Entering /users`);
   let conn = undefined;
   try {
     conn = await establishConnection();
@@ -174,8 +192,14 @@ router.get("/users", requireUserAuth, async (req, res) => {
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    console.log("Error:", error);
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -200,6 +224,7 @@ router.get("/users", requireUserAuth, async (req, res) => {
  * @apiUse EntityTimeStamps
  */
 router.get("/users/:id", requireUserAuth, async (req, res) => {
+  logger.debug(`Entering /users/:id`);
   let conn = undefined;
   const { id } = req.params;
   try {
@@ -209,7 +234,14 @@ router.get("/users/:id", requireUserAuth, async (req, res) => {
     result.retmsg.data.admin = !!+result.retmsg.data.admin;
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -241,6 +273,7 @@ router.get("/users/:id", requireUserAuth, async (req, res) => {
  */
 
 router.put("/users/:id", requireUserAuth, async (req, res) => {
+  logger.debug(`Entering /users/:id (PUT)`);
   const { id } = req.params;
 
   const newUser = ({ name, username, password, email } = req.body);
@@ -254,7 +287,14 @@ router.put("/users/:id", requireUserAuth, async (req, res) => {
     // const result = await updateUser(req.body, id);
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -285,6 +325,7 @@ router.put("/users/:id", requireUserAuth, async (req, res) => {
  */
 
 router.post("/users", requireUserAuth, jsonParser, async (req, res) => {
+  logger.debug(`Entering /users (POST)`);
   const { username, password, name } = req.body;
   let { admin } = req.body;
 
@@ -296,7 +337,7 @@ router.post("/users", requireUserAuth, jsonParser, async (req, res) => {
     });
   }
   if (!admin) {
-    admin = 0;
+    admin = false;
   }
   const hash = await bcrypt.hash(password, 10);
   const newUser = { name, username, password: hash, admin };
@@ -309,8 +350,14 @@ router.post("/users", requireUserAuth, jsonParser, async (req, res) => {
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    console.error("Error:", error);
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -333,6 +380,7 @@ router.post("/users", requireUserAuth, jsonParser, async (req, res) => {
  */
 
 router.delete("/users/:id", requireUserAuth, jsonParser, async (req, res) => {
+  logger.debug(`Entering /users/:id (DELETE)`);
   const { id } = req.params;
 
   let conn = undefined;
@@ -342,7 +390,14 @@ router.delete("/users/:id", requireUserAuth, jsonParser, async (req, res) => {
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -370,6 +425,7 @@ router.delete("/users/:id", requireUserAuth, jsonParser, async (req, res) => {
  */
 
 router.post("/keys", requireUserAuth, async (req, res) => {
+  logger.debug(`Entering /keys (POST)`);
   let conn = undefined;
   const { description } = req.body;
   if (!description) {
@@ -389,7 +445,14 @@ router.post("/keys", requireUserAuth, async (req, res) => {
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -414,6 +477,8 @@ router.post("/keys", requireUserAuth, async (req, res) => {
  */
 
 router.get("/keys", requireUserAuth, async (req, res) => {
+  logger.debug(`Entering /keys (GET)`);
+
   let conn = undefined;
   const pagination = ({ limit, offset } = req.query);
   const { name } = req.query;
@@ -431,8 +496,14 @@ router.get("/keys", requireUserAuth, async (req, res) => {
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    console.error(error);
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -457,6 +528,7 @@ router.get("/keys", requireUserAuth, async (req, res) => {
  */
 
 router.get("/keys/:id", requireUserAuth, async (req, res) => {
+  logger.debug(`Entering /keys/:id (GET)`);
   let conn = undefined;
   const { id } = req.params;
   if (isNaN(id)) {
@@ -473,7 +545,14 @@ router.get("/keys/:id", requireUserAuth, async (req, res) => {
     result.retmsg.data.revoked = !!+result.retmsg.data.revoked;
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -498,6 +577,7 @@ router.get("/keys/:id", requireUserAuth, async (req, res) => {
  */
 
 router.put("/keys/:id", requireUserAuth, async (req, res) => {
+  logger.debug(`Entering /keys/:id (PUT)`);
   const { id } = req.params;
   const apikey = ({ description, revoked } = req.body);
   let conn = undefined;
@@ -508,7 +588,14 @@ router.put("/keys/:id", requireUserAuth, async (req, res) => {
     result.retmsg.data.revoked = !!+result.retmsg.data.revoked;
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }

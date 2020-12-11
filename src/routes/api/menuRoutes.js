@@ -24,6 +24,7 @@ const { requireApiAuth } = require(path.resolve(
   "src/middleware",
   "authMiddleware.js"
 ));
+const logger = require(path.resolve("src/helpers", "logger"))(module);
 
 const jsonParser = bodyParser.json();
 router.use(requireApiAuth);
@@ -54,6 +55,7 @@ const TABLE = constants.MENU_TABLE;
  */
 
 router.get("/", async (req, res) => {
+  logger.debug(`Entering /menus (GET)`);
   let conn = undefined;
   const pagination = ({ limit, offset } = req.query);
   let searchObj = ({ date, before, after, comment } = req.query);
@@ -68,8 +70,14 @@ router.get("/", async (req, res) => {
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    console.error("Error:", error);
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     if (conn) {
       disconnect(conn);
@@ -95,6 +103,7 @@ router.get("/", async (req, res) => {
  */
 
 router.get("/:id", async (req, res) => {
+  logger.debug(`Entering /menus/:id (GET)`);
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res
@@ -108,7 +117,14 @@ router.get("/:id", async (req, res) => {
     result = await getPost(conn, TABLE, { id });
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     if (conn) {
       disconnect(conn);
@@ -136,6 +152,7 @@ router.get("/:id", async (req, res) => {
  */
 
 router.post("/", jsonParser, async (req, res) => {
+  logger.debug(`Entering /menus (POST)`);
   const { date, comment, recipe_id } = req.body;
 
   if (!date) {
@@ -164,7 +181,14 @@ router.post("/", jsonParser, async (req, res) => {
     });
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     if (conn) {
       disconnect(conn);
@@ -193,6 +217,7 @@ router.post("/", jsonParser, async (req, res) => {
  * @apiUse Error
  */
 router.put("/:id", jsonParser, async (req, res) => {
+  logger.debug(`Entering /menus/:id (PUT)`);
   const { date, comment, recipe_id } = req.body;
   const { id } = req.params;
 
@@ -248,8 +273,14 @@ router.put("/:id", jsonParser, async (req, res) => {
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    console.log(error);
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     if (conn) {
       disconnect(conn);
@@ -270,6 +301,7 @@ router.put("/:id", jsonParser, async (req, res) => {
  */
 
 router.delete("/:id", async (req, res) => {
+  logger.debug(`Entering /menus/:id (DELETE)`);
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res
@@ -287,7 +319,14 @@ router.delete("/:id", async (req, res) => {
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
     conn.rollback();
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     if (conn) {
       disconnect(conn);
@@ -311,6 +350,7 @@ router.delete("/:id", async (req, res) => {
  */
 
 router.get("/:id/recipes", async (req, res) => {
+  logger.debug(`Entering /menus/:id/recipes (GET)`);
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res
@@ -324,7 +364,14 @@ router.get("/:id/recipes", async (req, res) => {
     result = await getMenuRecipes(conn, { menu_id: id });
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     if (conn) {
       disconnect(conn);
@@ -347,6 +394,7 @@ router.get("/:id/recipes", async (req, res) => {
  */
 
 router.post("/:id/recipes", async (req, res) => {
+  logger.debug(`Entering /menus/:id/recipes (POST)`);
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res
@@ -363,13 +411,18 @@ router.post("/:id/recipes", async (req, res) => {
     await conn.beginTransaction();
     await deleteFromMenuRecipeXref(conn, { menu_id: id });
     result = await setMenuRecipesXref(conn, arr);
-    console.log(result);
     await conn.commit();
     return res.status(204).json({});
   } catch (error) {
-    console.error("ERROR:", error);
     await conn.rollback();
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     if (conn) {
       await disconnect(conn);
