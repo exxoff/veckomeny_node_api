@@ -3,12 +3,13 @@ const path = require("path");
 const constants = require(path.resolve("src", "constants"));
 // const { getBoolean } = require("../helpers/getBoolean");
 const { getBoolean } = require(path.resolve("src/helpers", "getBoolean"));
+const logger = require(path.resolve("src/helpers", "logger"))(module);
 
 module.exports.getAll = async (connection, table, pagination, searchObj) => {
   return new Promise((resolve, reject) => {
     let sql = `SELECT * FROM ${table} WHERE 1`;
     if (searchObj) {
-      console.log("SearchObject:", searchObj);
+      logger.debug(`Search object: ${JSON.stringify(searchObj)}`);
       if (searchObj.name) {
         sql = `${sql} AND name like '%${searchObj.name}%'`;
       }
@@ -37,9 +38,11 @@ module.exports.getAll = async (connection, table, pagination, searchObj) => {
       sql = `${sql} limit ${pagination.offset || 0},${pagination.limit}`;
     }
     // let n = "";
-    console.log("SQL:", sql);
-    connection.query(sql, (error, result) => {
+
+    const query = connection.query(sql, (error, result) => {
+      logger.debug(`SQL query: ${query.sql}`);
       if (error) {
+        //logger.error(`Error running query: ${JSON.stringify(error)}`);
         reject({
           retcode: 500,
           retmsg: {
@@ -49,6 +52,7 @@ module.exports.getAll = async (connection, table, pagination, searchObj) => {
           },
         });
       } else if (result.length < 1) {
+        logger.debug(`${result.length} records returned from database.`);
         resolve({
           retcode: 200,
           retmsg: {
@@ -58,6 +62,7 @@ module.exports.getAll = async (connection, table, pagination, searchObj) => {
           },
         });
       } else {
+        logger.debug(`${result.length} records returned from database.`);
         resolve({
           retcode: 200,
           retmsg: {
@@ -73,8 +78,10 @@ module.exports.getAll = async (connection, table, pagination, searchObj) => {
 
 module.exports.getPost = async (connection, table, post) => {
   return new Promise(async (resolve, reject) => {
+    logger.debug(`Query filter: ${JSON.stringify(post)}`);
     const sql = `SELECT * FROM ${table} WHERE ?`;
-    connection.query(sql, [post], (error, result) => {
+    const query = connection.query(sql, [post], (error, result) => {
+      logger.debug(`SQL query: ${query.sql}`);
       if (error) {
         reject({
           retcode: 500,
@@ -85,6 +92,7 @@ module.exports.getPost = async (connection, table, post) => {
           },
         });
       } else if (result.length < 1) {
+        logger.debug(`No records.`);
         resolve({
           retcode: 404,
           retmsg: {
@@ -94,6 +102,7 @@ module.exports.getPost = async (connection, table, post) => {
           },
         });
       } else {
+        logger.debug(`Returned result: ${JSON.stringify(result[0])}`);
         resolve({
           retcode: 200,
           retmsg: {
@@ -110,7 +119,8 @@ module.exports.getPost = async (connection, table, post) => {
 module.exports.addPost = async (connection, table, post) => {
   return new Promise((resolve, reject) => {
     const sql = `INSERT INTO ${table} set ?`;
-    connection.query(sql, [post], async (error, result) => {
+    const query = connection.query(sql, [post], async (error, result) => {
+      logger.debug(`SQL query: ${query.sql}`);
       if (error) {
         console.log(error.code);
         let errCode = 500;
@@ -164,7 +174,8 @@ module.exports.updatePost = async (connection, table, id, newPost) => {
       },
     };
     const sql = `UPDATE ${table} set ? WHERE id=?`;
-    connection.query(sql, [newPost, id], (error, result) => {
+    const query = connection.query(sql, [newPost, id], (error, result) => {
+      logger.debug(`SQL query: ${query.sql}`);
       if (error) {
         reject({
           retcode: 500,
@@ -191,7 +202,8 @@ module.exports.updatePost = async (connection, table, id, newPost) => {
 module.exports.deleteFromJoin = async (connection, post) => {
   return new Promise((resolve, reject) => {
     const sql = `DELETE FROM ${constants.JOIN_TABLE} WHERE ?`;
-    connection.query(sql, [post], async (error, result) => {
+    const query = connection.query(sql, [post], async (error, result) => {
+      logger.debug(`SQL query: ${query.sql}`);
       if (error) {
         reject({
           retcode: 500,
@@ -218,7 +230,7 @@ module.exports.deleteFromJoin = async (connection, post) => {
 module.exports.deletePost = async (connection, table, post) => {
   return new Promise((resolve, reject) => {
     const sql = `DELETE FROM ${table} WHERE ?`;
-    connection.query(sql, [post], async (error, result) => {
+    const query = connection.query(sql, [post], async (error, result) => {
       if (error) {
         reject({
           retcode: 500,
@@ -259,7 +271,8 @@ module.exports.getCategoryRecipes = async (connection, id) => {
     JOIN ${constants.RECIPE_TABLE} as r ON ${constants.JOIN_TABLE}.recipe_id=r.id\
     JOIN ${constants.CATEGORY_TABLE} as c ON ${constants.JOIN_TABLE}.category_id=c.id\
     WHERE category_id=?`;
-    connection.query(sql, [id], (error, result) => {
+    const query = connection.query(sql, [id], (error, result) => {
+      logger.debug(`SQL query: ${query.sql}`);
       if (error) {
         reject({
           retcode: 500,
@@ -290,7 +303,8 @@ module.exports.getRecipeCategories = async (connection, id) => {
     JOIN ${constants.CATEGORY_TABLE} as c ON ${constants.JOIN_TABLE}.category_id=c.id\
     WHERE recipe_id=?`;
     // console.log(sql);
-    connection.query(sql, [id], (error, result) => {
+    const query = connection.query(sql, [id], (error, result) => {
+      logger.debug(`SQL query: ${query.sql}`);
       if (error) {
         reject({
           retcode: 500,
@@ -347,7 +361,8 @@ module.exports.setRecipeCategories = async (connection, id, insertObj) => {
       await deleteFromJoin(connection, { recipe_id: id });
     }
     let sql = `INSERT INTO ${constants.JOIN_TABLE} (recipe_id,category_id) values ?`;
-    connection.query(sql, [insertObj], (error, result) => {
+    const query = connection.query(sql, [insertObj], (error, result) => {
+      logger.debug(`SQL query: ${query.sql}`);
       if (error) {
         reject({
           code: constants.E_DBERROR,
@@ -366,13 +381,15 @@ module.exports.setRecipeCategories = async (connection, id, insertObj) => {
 };
 
 module.exports.getMenuRecipes = async (connection, searchObj) => {
-  console.log("Checking on", searchObj);
+  logger.debug(`Entering getMenuRecipes`);
+
   return new Promise((resolve, reject) => {
     let sql = `SELECT m.id as mid,m.comment as mcomment,m.date,r.id,r.name,r.link,r.comment,r.deleted,r.created_at,r.updated_at FROM ${constants.MENU_RECIPE_XREF_TABLE}
     JOIN ${constants.RECIPE_TABLE} as r ON ${constants.MENU_RECIPE_XREF_TABLE}.recipe_id=r.id
     JOIN ${constants.MENU_TABLE} as m ON ${constants.MENU_RECIPE_XREF_TABLE}.menu_id=m.id
     WHERE ?`;
-    connection.query(sql, [searchObj], (error, result) => {
+    const query = connection.query(sql, [searchObj], (error, result) => {
+      logger.debug(`SQL query: ${query.sql}`);
       if (error) {
         reject({
           retcode: 500,
@@ -383,7 +400,6 @@ module.exports.getMenuRecipes = async (connection, searchObj) => {
           },
         });
       } else {
-        console.log(result);
         let menu = undefined;
         if (result.length > 0) {
           menu = {
@@ -416,6 +432,7 @@ module.exports.getMenuRecipes = async (connection, searchObj) => {
 };
 
 module.exports.getRecipeMenus = async (connection, id) => {
+  logger.debug(`Entering getRecipeMenus`);
   return new Promise((resolve, reject) => {
     sql = sql = `select m.id,m.created_at,m.updated_at,m.date FROM ${constants.MENU_RECIPE_XREF_TABLE}\
     JOIN ${constants.RECIPE_TABLE} as r ON ${constants.MENU_RECIPE_XREF_TABLE}.recipe_id=r.id\
@@ -446,6 +463,7 @@ module.exports.getRecipeMenus = async (connection, id) => {
 };
 
 module.exports.setMenuRecipesXref = async (connection, insertObj) => {
+  logger.debug(`Entering setMenuRecipesXref`);
   return new Promise(async (resolve, reject) => {
     let sql = `INSERT INTO ${constants.MENU_RECIPE_XREF_TABLE} (menu_id,recipe_id) values ?`;
     const t = insertObj.map((r) => new Array(r.menu_id, r.recipe_id));
@@ -470,6 +488,7 @@ module.exports.setMenuRecipesXref = async (connection, insertObj) => {
 };
 
 module.exports.deleteFromMenuRecipeXref = async (connection, queryObj) => {
+  logger.debug(`Entering deleteFromMenuRecipeXref`);
   return new Promise(async (resolve, reject) => {
     let sql = `DELETE FROM ${constants.MENU_RECIPE_XREF_TABLE} WHERE ?`;
     connection.query(sql, [queryObj], (error, result) => {

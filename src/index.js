@@ -1,6 +1,7 @@
 require("dotenv").config();
 const path = require("path");
 const express = require("express");
+const logger = require(path.resolve("src/helpers", "logger"))(module);
 const cors = require("cors");
 
 const app = express();
@@ -9,6 +10,18 @@ const PORT = process.env.PORT || 3000;
 // MIDDLEWARE
 app.use(cors());
 app.use(express.json());
+
+app.all("*", (req, res, next) => {
+  logger.info(
+    `Request: ${JSON.stringify({
+      method: req.method,
+      query: req.query,
+      params: req.params,
+      client_ip: req.connection.remoteAddress,
+    })}`
+  );
+  next();
+});
 app.use("/doc", express.static(path.resolve("doc")));
 // app.use("/api/v1/", requireApiAuth);
 
@@ -22,5 +35,6 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT}`);
+  logger.info(`Listening on port ${PORT}`);
+  // console.log(`Listening on port ${PORT}`);
 });

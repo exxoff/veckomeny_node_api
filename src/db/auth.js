@@ -95,14 +95,13 @@ module.exports.validateApiKey = async (apikey) => {
         }
       });
     } catch (error) {
-      console.error("Error:", error);
-
+      // reject(error);
       reject({
         retcode: 500,
         retmsg: {
           code: constants.E_DBERROR,
           msg: constants.E_DBERROR_MSG,
-          error: error.message,
+          error: error,
         },
       });
     } finally {

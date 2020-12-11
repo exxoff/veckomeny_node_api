@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const router = express.Router();
 const bodyParser = require("body-parser");
+const logger = require(path.resolve("src/helpers", "logger"))(module);
 const constants = require(path.resolve("src", "constants"));
 const { establishConnection, disconnect } = require(path.resolve(
   "src/db",
@@ -48,14 +49,14 @@ router.get("/", async (req, res) => {
   let conn = undefined;
   const pagination = ({ limit, offset } = req.query);
   const { name } = req.query;
-  console.log("Name:", name);
+
   try {
     conn = await establishConnection();
     const result = await getAll(conn, TABLE, pagination, { name });
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    console.log("ERROR:", error);
+    logger.error(JSON.stringify(error));
     return res.status(error.retcode).json(error.retmsg);
   } finally {
     if (conn) {
@@ -82,6 +83,7 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
+  logger.debug(`Getting category with ID ${id}`);
   if (isNaN(id)) {
     return res.status(400).json({
       code: constants.E_ID_NAN,
@@ -97,7 +99,14 @@ router.get("/:id", async (req, res) => {
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -122,6 +131,7 @@ router.get("/:id", async (req, res) => {
 
 router.post("/", jsonParser, async (req, res) => {
   let conn = undefined;
+  logger.debug(`POST category`);
   let { name } = req.body;
   if (!name) {
     res.status(400);
@@ -133,11 +143,19 @@ router.post("/", jsonParser, async (req, res) => {
 
   try {
     conn = await establishConnection();
+    logger.debug(`Adding category ${name} to database`);
     const result = await addPost(conn, TABLE, { name });
 
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -161,10 +179,11 @@ router.post("/", jsonParser, async (req, res) => {
  * @apiUse Error
  */
 router.put("/:id", jsonParser, async (req, res) => {
+  logger.debug(`UPDATE category`);
   let conn = undefined;
   const { name } = req.body;
   const { id } = req.params;
-
+  logger.debug(`UPDATE category ${id}`);
   if (isNaN(id)) {
     return res
       .status(400)
@@ -179,11 +198,20 @@ router.put("/:id", jsonParser, async (req, res) => {
 
   try {
     conn = await establishConnection();
+    logger.debug(`Writing category to database`);
     await updatePost(conn, TABLE, id, { name });
+    logger.debug(`Getting inserted category.`);
     const result = await getPost(conn, TABLE, { id });
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     disconnect(conn);
   }
@@ -206,6 +234,7 @@ router.put("/:id", jsonParser, async (req, res) => {
  */
 router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
+  logger.debug(`DELETE category ${id}`);
   if (isNaN(id)) {
     return res
       .status(400)
@@ -214,19 +243,29 @@ router.delete("/:id", async (req, res) => {
   let conn = undefined;
   try {
     conn = await establishConnection();
+    logger.debug(`Begin transaction`);
     await conn.beginTransaction();
+    logger.debug(`Deleting ${id} from join table`);
     await deleteFromJoin(conn, { id });
-
+    logger.debug(`Deleting ${id} from ${TABLE}`);
     const delResult = await deletePost(conn, TABLE, { id });
 
+    logger.debug(`Committing transaction`);
     await conn.commit();
     return res.status(delResult.retcode).json(delResult.retmsg);
   } catch (error) {
     if (conn) {
+      log.debug(`Rolling back transaction.`);
       conn.rollback();
     }
-
-    res.status(500).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     if (conn) {
       disconnect(conn);
@@ -257,12 +296,16 @@ router.get("/:id/recipes", async (req, res) => {
       .status(400)
       .json({ code: constants.E_ID_NAN, msg: constants.E_ID_NAN_MSG });
   }
+  logger.debug(`GET recipes with category ${id}`);
 
   let conn = undefined;
 
   try {
     conn = await establishConnection();
+    logger.debug(`Getting recipes`);
     const result = await getCategoryRecipes(conn, id);
+    logger.debug(`Filtering out deleted recipes`);
+
     if (result.retmsg.data) {
       result.retmsg.data.forEach((element) => {
         element.deleted = !!+element.deleted;
@@ -270,8 +313,14 @@ router.get("/:id/recipes", async (req, res) => {
     }
     return res.status(result.retcode).json(result.retmsg.data);
   } catch (error) {
-    console.log(error);
-    return res.status(error.retcode).json(error.retmsg);
+    logger.error(
+      error.retmsg
+        ? `Error, ${JSON.stringify(error.retmsg)}`
+        : `Error, ${error.message}`
+    );
+    return error.retmsg
+      ? res.status(error.retcode).json(error.retmsg)
+      : res.status(500).json({ msg: "Application error" });
   } finally {
     if (conn) {
       disconnect(conn);
