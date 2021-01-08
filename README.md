@@ -4,6 +4,6 @@ The weekly menu API is a RESTful web api for storing and categorizing recipes an
 
 It's still under development.
 
-### API documentation
+## API documentation
 
-The API documentation is done using  [apidoc](https://apidocjs.com/). Apidoc is installed globally using NPM. To rebuild the documentation, run `apidoc -e node_modules` from the project root.
+The API documentation is done using  [apidoc](https://apidocjs.com/). Apidoc is installed globally using NPM. To rebuild the documentation, run `apidoc -e node_modules` from the project root or just run `npm run compile:docs`. After compilation, the docs are available from http://localhost/docs.
