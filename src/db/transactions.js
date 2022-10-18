@@ -20,7 +20,6 @@ module.exports.getAll = async (connection, table, pagination, searchObj) => {
         sql = `${sql} AND comment like '%${searchObj.comment}%'`;
       }
       if (searchObj.categories) {
-        // console.log("Categories:", searchObj.categories);
         sql = `${sql} AND id in (SELECT recipe_id from ${constants.JOIN_TABLE} WHERE category_id IN (${searchObj.categories}) GROUP BY recipe_id HAVING COUNT(*) =${searchObj.categories.length})`;
       }
       if (searchObj.before) {

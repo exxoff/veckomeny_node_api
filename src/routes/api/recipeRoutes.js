@@ -67,7 +67,9 @@ router.get("/", async (req, res) => {
   willIncludeDeleted = getBoolean(includeDeleted);
 
   if (cat && !Array.isArray(cat)) {
-    cat = [cat];
+    //console.log("CATS:", cat);
+    const cats = cat.split(",");
+    cat = cats;
   }
   try {
     conn = await establishConnection();
